@@ -1,31 +1,36 @@
 from src.utils.performance import measure_performance
 
 @measure_performance
-def rod_cutting_iterative(prices, n):
+def rod_cutting_iterative(prices, n, allowed_lengths=None):
     """
-    Solusi iteratif murni untuk Rod Cutting Problem tanpa menggunakan dynamic programming.
-    Menggunakan pendekatan brute force dengan nested loops untuk mencoba semua kombinasi
-    pemotongan yang mungkin.
+    Implementasi rod cutting dengan pendekatan iteratif (brute force)
+    dengan opsi pembatasan panjang potong yang diperbolehkan
     """
     if n <= 0:
-        return 0
+        return 0, []
     
-    def get_combinations(length, current_cuts=[]):
-        """Helper function untuk menghasilkan semua kombinasi pemotongan yang mungkin"""
-        if length == 0:
-            return [current_cuts]
-        combinations = []
-        for i in range(1, length + 1):
-            combinations.extend(get_combinations(length - i, current_cuts + [i]))
-        return combinations
+    # Tentukan panjang yang akan dicoba
+    if allowed_lengths:
+        lengths_to_try = [l for l in allowed_lengths if l <= n]
+    else:
+        lengths_to_try = range(1, n + 1)
     
-    # Dapatkan semua kombinasi pemotongan yang mungkin
-    all_combinations = get_combinations(n)
+    max_val = float('-inf')
+    best_cuts = []
     
-    # Hitung nilai untuk setiap kombinasi
-    max_value = float('-inf')
-    for cuts in all_combinations:
-        current_value = sum(prices[i-1] for i in cuts)
-        max_value = max(max_value, current_value)
+    def get_all_combinations(remaining, current_cuts):
+        nonlocal max_val, best_cuts
+        
+        if remaining == 0:
+            current_value = sum(prices[i-1] for i in current_cuts)
+            if current_value > max_val:
+                max_val = current_value
+                best_cuts = current_cuts[:]
+            return
+        
+        for length in lengths_to_try:
+            if length <= remaining:
+                get_all_combinations(remaining - length, current_cuts + [length])
     
-    return max_value
+    get_all_combinations(n, [])
+    return max_val if max_val != float('-inf') else 0, best_cuts

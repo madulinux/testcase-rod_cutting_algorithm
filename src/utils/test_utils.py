@@ -87,7 +87,7 @@ def generate_test_case(size, base_price=10):
     
     return prices
 
-def get_optimal_cuts(prices, n, max_value):
+def get_optimal_cuts(prices, n, max_value, allowed_lengths=None):
     """
     Mendapatkan kombinasi potongan optimal untuk hasil tertentu,
     mempertimbangkan kombinasi yang lebih variatif ketika nilai totalnya sama
@@ -96,6 +96,7 @@ def get_optimal_cuts(prices, n, max_value):
         prices: List harga untuk setiap panjang
         n: Panjang total rod
         max_value: Nilai optimal yang dicari
+        allowed_lengths: Optional list of allowed cutting lengths
     Returns:
         list: Daftar panjang potongan optimal
     """
@@ -117,6 +118,8 @@ def get_optimal_cuts(prices, n, max_value):
         all_combinations = []
         
         for i in range(1, length + 1):
+            if allowed_lengths and i not in allowed_lengths:
+                continue
             if i <= len(prices) and prices[i-1] <= target_value:
                 remaining_cuts = find_all_cuts(length - i, target_value - prices[i-1], memo)
                 for cuts in remaining_cuts:
@@ -179,13 +182,16 @@ def measure_memory_usage(func, *args):
     
     return result, peak
 
-def test_performance(test_sizes, user_prices=None):
+def test_performance(test_sizes, user_prices=None, allowed_lengths=None):
     """
     Menguji dan membandingkan kinerja semua implementasi dengan analisis yang lebih detail
     
     Args:
         test_sizes: List ukuran rod yang akan diuji
         user_prices: Optional dictionary mapping panjang ke harga (untuk input manual)
+        allowed_lengths: Optional list of allowed cutting lengths
+    Returns:
+        dict: Dictionary berisi hasil pengujian
     """
     from src.implementations.recursive import rod_cutting_pure_recursive, rod_cutting_recursive
     from src.implementations.iterative import rod_cutting_iterative
@@ -200,7 +206,8 @@ def test_performance(test_sizes, user_prices=None):
         'prices': {},
         'cut_patterns': {},
         'price_analysis': {},
-        'efficiency_metrics': {}
+        'efficiency_metrics': {},
+        'allowed_lengths': allowed_lengths
     }
     
     implementations = {
@@ -213,10 +220,25 @@ def test_performance(test_sizes, user_prices=None):
     
     for size in test_sizes:
         if user_prices is None:
-            prices = generate_test_case(size)
+            if allowed_lengths:
+                # Generate prices hanya untuk panjang yang diperbolehkan
+                prices = [0] * size  # Initialize dengan 0
+                for length in allowed_lengths:
+                    if length <= size:
+                        prices[length-1] = generate_test_case(length)[length-1]
+            else:
+                prices = generate_test_case(size)
         else:
-            # Gunakan harga dari user, pastikan dalam format list
-            prices = [user_prices[i] for i in range(1, size + 1)]
+            # Gunakan harga dari user, hanya untuk panjang yang diperbolehkan
+            prices = [0] * size  # Initialize dengan 0
+            if allowed_lengths:
+                for length in allowed_lengths:
+                    if length <= size and length in user_prices:
+                        prices[length-1] = user_prices[length]
+            else:
+                for i in range(1, size + 1):
+                    if i in user_prices:
+                        prices[i-1] = user_prices[i]
         
         metrics['prices'][size] = prices
         metrics['price_analysis'][size] = analyze_prices(prices)
@@ -225,10 +247,20 @@ def test_performance(test_sizes, user_prices=None):
             try:
                 # Ukur waktu eksekusi
                 start_time = time.time()
-                result, peak_memory = measure_memory_usage(impl, prices, size)
+                if allowed_lengths:
+                    result = impl(prices, size, allowed_lengths)
+                else:
+                    result = impl(prices, size)
                 end_time = time.time()
                 
                 execution_time = end_time - start_time
+                
+                # Unpack hasil
+                if len(result) == 3:  # value, cuts, peak_memory
+                    value, cuts, peak_memory = result
+                else:  # value, peak_memory
+                    value, peak_memory = result
+                    cuts = get_optimal_cuts(prices, size, value, allowed_lengths)
                 
                 # Simpan metrik
                 if size not in metrics['execution_time']:
@@ -241,29 +273,48 @@ def test_performance(test_sizes, user_prices=None):
                 
                 if size not in metrics['solution_quality']:
                     metrics['solution_quality'][size] = {}
-                metrics['solution_quality'][size][name] = result[0]
+                metrics['solution_quality'][size][name] = value
                 
-                # Analisis pola pemotongan dan efisiensi
-                optimal_cuts = get_optimal_cuts(prices, size, result[0])
                 if size not in metrics['cut_patterns']:
                     metrics['cut_patterns'][size] = {}
-                metrics['cut_patterns'][size][name] = optimal_cuts
+                metrics['cut_patterns'][size][name] = cuts
                 
                 if size not in metrics['efficiency_metrics']:
                     metrics['efficiency_metrics'][size] = {}
                 efficiency_metrics = calculate_efficiency_metrics(
-                    result[0], optimal_cuts, prices, execution_time, peak_memory
+                    value, cuts, prices, execution_time, peak_memory
                 )
                 metrics['efficiency_metrics'][size][name] = efficiency_metrics
                 
                 print(f"\n{name} (Size {size}):")
-                print(f"Hasil: {result[0]}")
+                print(f"Hasil: {value}")
+                print(f"Pola Potong: {cuts}")
                 print(f"Waktu: {execution_time:.6f} detik")
                 print(f"Peak Memory: {format_bytes(peak_memory)}")
-                print(f"Pola Pemotongan: {format_cut_pattern(optimal_cuts)}")
                 
             except Exception as e:
                 print(f"Error in {name}: {str(e)}")
+                # Inisialisasi metrik kosong untuk implementasi yang gagal
+                if size not in metrics['execution_time']:
+                    metrics['execution_time'][size] = {}
+                if size not in metrics['peak_memory']:
+                    metrics['peak_memory'][size] = {}
+                if size not in metrics['solution_quality']:
+                    metrics['solution_quality'][size] = {}
+                if size not in metrics['cut_patterns']:
+                    metrics['cut_patterns'][size] = {}
+                if size not in metrics['efficiency_metrics']:
+                    metrics['efficiency_metrics'][size] = {}
+                    
+                metrics['execution_time'][size][name] = 0
+                metrics['peak_memory'][size][name] = 0
+                metrics['solution_quality'][size][name] = 0
+                metrics['cut_patterns'][size][name] = []
+                metrics['efficiency_metrics'][size][name] = {
+                    'efficiency_ratio': 0,
+                    'memory_efficiency': 0,
+                    'time_efficiency': 0
+                }
                 continue
     
     return metrics
@@ -470,32 +521,20 @@ def visualize_results(metrics, test_sizes, result_dir):
     create_cut_pattern_plot()
 
 def save_analysis_to_file(metrics, test_sizes):
-    """
-    Menyimpan hasil analisis ke file dengan visualisasi dalam satu folder
-    """
-    import os
-    from datetime import datetime
-    
-    # Buat direktori results jika belum ada
-    base_results_dir = "results"
-    if not os.path.exists(base_results_dir):
-        os.makedirs(base_results_dir)
-    
-    # Buat subfolder dengan timestamp
+    """Menyimpan hasil analisis ke file markdown dengan detail lengkap"""
+    # Buat direktori untuk hasil
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    result_dir = f"{base_results_dir}/analysis_{timestamp}"
-    os.makedirs(result_dir)
-    
-    # Generate visualisasi
-    visualize_results(metrics, test_sizes, result_dir)
-    
-    # Simpan hasil analisis ke file markdown
+    result_dir = f"results/analysis_{timestamp}"
+    os.makedirs(result_dir, exist_ok=True)
     analysis_file = f"{result_dir}/analysis.md"
     
-    with open(analysis_file, "w") as f:
-        f.write("# Analisis Performa Rod Cutting Problem\n\n")
+    # Buat visualisasi
+    visualize_results(metrics, test_sizes, result_dir)
+    
+    with open(analysis_file, 'w') as f:
+        f.write("# Analisis Rod Cutting Problem\n\n")
         
-        # Kategorisasi implementasi
+        # Kategorisasi dan Penjelasan Implementasi
         f.write("## Kategorisasi Implementasi\n\n")
         f.write("### 1. Implementasi Tanpa Dynamic Programming (Brute Force)\n\n")
         f.write("#### Pure Recursive\n")
@@ -529,16 +568,16 @@ def save_analysis_to_file(metrics, test_sizes):
         f.write("- Mengoptimalkan penggunaan memori\n")
         f.write("- Kompleksitas Waktu: O(n²)\n")
         f.write("- Overhead memori minimal\n\n")
-
-        # Hasil Pengujian
-        f.write("## Hasil Pengujian\n\n")
-        f.write("### Parameter Pengujian\n")
-        f.write(f"Ukuran input yang diuji: {test_sizes}\n\n")
         
-        f.write("### Detail Hasil per Ukuran Input\n\n")
+        # Informasi tentang batasan panjang potong
+        if metrics.get('allowed_lengths'):
+            f.write("## Batasan Panjang Potong\n")
+            f.write(f"Panjang yang diperbolehkan: {sorted(metrics['allowed_lengths'])}\n\n")
         
+        # Hasil Pengujian Detail
+        f.write("## Hasil Pengujian Detail\n\n")
         for size in test_sizes:
-            f.write(f"#### Ukuran Input: {size}\n\n")
+            f.write(f"### Ukuran Input: {size}\n\n")
             
             # Tampilkan daftar harga
             prices = [str(metrics['prices'][size][i]) for i in range(size)]
@@ -557,208 +596,139 @@ def save_analysis_to_file(metrics, test_sizes):
                 else:
                     f.write(f"  Panjang {length}: {ppu:.2f} per unit\n")
             f.write("```\n\n")
-            
-            # Solusi optimal dengan detail
-            optimal_value = metrics['solution_quality'][size]['Bottom-up DP']
-            optimal_cuts = get_optimal_cuts(metrics['prices'][size], size, optimal_value)
-            f.write(f"**Solusi Optimal:**\n")
-            f.write(f"- Nilai Total: {optimal_value}\n")
-            
-            # Hitung frekuensi setiap potongan
-            cut_frequency = {}
-            for cut in optimal_cuts:
-                cut_frequency[cut] = cut_frequency.get(cut, 0) + 1
-            
-            # Tampilkan potongan dengan frekuensinya
-            cuts_str = []
-            for cut, freq in sorted(cut_frequency.items()):
-                if freq > 1:
-                    cuts_str.append(f"{cut}x{freq}")
-                else:
-                    cuts_str.append(str(cut))
-            f.write(f"- Potongan: [{', '.join(cuts_str)}]\n")
-            
-            # Detail perhitungan
-            f.write("- Detail perhitungan:\n")
-            f.write("```\n")
-            total = 0
-            no_cut_price = metrics['prices'][size][size-1]
-            
-            # Tampilkan detail untuk setiap jenis potongan (sekali)
-            for cut, freq in sorted(cut_frequency.items()):
-                price = metrics['prices'][size][cut-1]
-                total += price * freq
-                price_per_unit = price / cut
-                relative_saving = ((price_per_unit/(no_cut_price/size)) - 1) * 100
-                f.write(f"  Panjang {cut} (x{freq}): {price} (harga per unit: {price_per_unit:.2f}, "
-                       f"{'premium' if relative_saving > 0 else 'diskon'}: {abs(relative_saving):.1f}%)\n")
-            
-            total_saving = ((total/no_cut_price) - 1) * 100
-            f.write(f"  Total: {total} ({abs(total_saving):.1f}% {'lebih tinggi' if total_saving > 0 else 'dibanding'} tanpa potongan)\n")
-            f.write("```\n\n")
         
-        # Visualisasi Performa
-        f.write("## Visualisasi Performa\n\n")
-        
-        # Grafik waktu eksekusi
-        f.write("### Grafik Waktu Eksekusi (skala log)\n")
-        f.write("```\n")
-        implementations = sorted(metrics['execution_time'][test_sizes[0]].keys())
-        max_name_length = max(len(impl) for impl in implementations)
-        
-        for impl in implementations:
-            times = [metrics['execution_time'][size][impl] for size in test_sizes]
-            max_time = max(max(metrics['execution_time'][size].values()) for size in test_sizes)
-            bar_length = 40
-            
-            f.write(f"{impl.ljust(max_name_length)} │ ")
-            for time in times:
-                length = int((bar_length * (1 + math.log10(time))) / (1 + math.log10(max_time)))
-                f.write("█" * length + " " * (bar_length - length) + " ")
-            f.write(f"│ {min(times):.6f}s - {max(times):.6f}s\n")
-        
-        f.write(" " * max_name_length + " └" + "─" * (bar_length * len(test_sizes) + len(test_sizes)) + "┘\n")
-        f.write(" " * max_name_length + "  ")
-        for size in test_sizes:
-            f.write(f"{str(size).center(bar_length)} ")
-        f.write("\n```\n\n")
-        
-        # Analisis Komparatif
-        f.write("## Analisis Komparatif\n\n")
-        
-        # Time comparison
-        f.write("### Perbandingan Waktu Eksekusi\n")
-        for size in test_sizes:
-            if size in metrics['execution_time']:
-                f.write(f"\n#### Untuk ukuran input {size}:\n")
-                times = metrics['execution_time'][size]
-                if times:
-                    fastest = min(times.values())
-                    f.write("| Implementasi | Waktu (s) | Relatif terhadap tercepat |\n")
-                    f.write("|--------------|-----------|-------------------------|\n")
-                    for impl, time in sorted(times.items(), key=lambda x: x[1]):
-                        relative = time / fastest
-                        f.write(f"| {impl} | {time:.6f} | {relative:.2f}x |\n")
-        
-        # Memory comparison
-        f.write("\n### Perbandingan Penggunaan Memori\n")
-        for size in test_sizes:
-            if size in metrics['memory_usage']:
-                f.write(f"\n#### Untuk ukuran input {size}:\n")
-                memories = metrics['memory_usage'][size]
-                if memories:
-                    min_memory = min(memories.values())
-                    f.write("| Implementasi | Memori | Relatif terhadap minimum |\n")
-                    f.write("|--------------|---------|------------------------|\n")
-                    for impl, memory in sorted(memories.items(), key=lambda x: x[1]):
-                        relative = memory / min_memory
-                        f.write(f"| {impl} | {format_bytes(memory)} | {relative:.2f}x |\n")
-        
-        # Kesimpulan
-        f.write("\n## Kesimpulan\n\n")
+        # Perbandingan Kinerja
+        f.write("## Perbandingan Kinerja\n")
         f.write("### Waktu Eksekusi\n")
-        f.write("1. Pendekatan brute force (Pure Recursive dan Iterative) menunjukkan pertumbuhan waktu eksponensial\n")
-        f.write("2. Dynamic Programming memberikan peningkatan kinerja yang signifikan\n")
-        f.write("3. Space Optimized DP memiliki kinerja serupa dengan Bottom-up DP\n\n")
+        f.write("| Size | " + " | ".join(metrics['execution_time'][test_sizes[0]].keys()) + " |\n")
+        f.write("|" + "---|" * (len(metrics['execution_time'][test_sizes[0]]) + 1) + "\n")
         
-        f.write("### Penggunaan Memori\n")
-        f.write("1. Pure Recursive menggunakan memori untuk call stack\n")
-        f.write("2. Iterative menggunakan memori untuk menyimpan kombinasi\n")
-        f.write("3. Pendekatan DP menggunakan memori tambahan untuk menyimpan hasil\n")
-        f.write("4. Space Optimized DP menunjukkan penggunaan memori yang paling efisien\n\n")
+        for size in test_sizes:
+            row = [str(size)]
+            for impl in metrics['execution_time'][test_sizes[0]].keys():
+                time_val = metrics['execution_time'][size][impl]
+                row.append(f"{time_val:.6f}s")
+            f.write("| " + " | ".join(row) + " |\n")
+        f.write("\n")
         
-        f.write("### Rekomendasi Penggunaan\n")
-        f.write("1. Untuk dataset kecil (n ≤ 10): Semua implementasi dapat digunakan\n")
-        f.write("2. Untuk dataset menengah (10 < n ≤ 20): Gunakan implementasi DP\n")
-        f.write("3. Untuk dataset besar (n > 20): Gunakan Bottom-up DP atau Space Optimized DP\n")
-        f.write("4. Jika memori terbatas: Gunakan Space Optimized DP\n")
-        f.write("5. Untuk tujuan pembelajaran/debugging: Gunakan Top-down DP\n")
-
-        # Tambahkan analisis perbandingan yang lebih mendalam
-        f.write("\n## Analisis Perbandingan Mendalam\n\n")
-        
-        f.write("### 1. Perbandingan Kompleksitas Teoritis\n\n")
-        f.write("| Implementasi | Time Complexity | Space Complexity | Keterangan |\n")
-        f.write("|--------------|-----------------|------------------|------------|\n")
-        f.write("| Brute Force | O(2ⁿ) | O(n) | Mencoba semua kemungkinan kombinasi pemotongan |\n")
-        f.write("| Top-down DP | O(n²) | O(n) | Memoization menghindari perhitungan berulang |\n")
-        f.write("| Bottom-up DP | O(n²) | O(n) | Membangun solusi dari subproblem terkecil |\n")
-        f.write("| Space Optimized DP | O(n²) | O(1) | Mengoptimalkan penggunaan memori |\n\n")
-        
-        f.write("### 2. Analisis Kinerja Empiris\n\n")
-        
-        # Hitung rata-rata peningkatan waktu untuk setiap implementasi
-        f.write("#### Peningkatan Waktu Relatif\n\n")
+        # Analisis Peningkatan Waktu
+        f.write("### Analisis Peningkatan Waktu\n")
         for size1, size2 in zip(test_sizes[:-1], test_sizes[1:]):
-            f.write(f"\nPeringkatan dari ukuran {size1} ke {size2}:\n")
+            f.write(f"\n#### Peningkatan dari ukuran {size1} ke {size2}:\n")
             for impl in metrics['execution_time'][size1].keys():
                 time1 = metrics['execution_time'][size1][impl]
                 time2 = metrics['execution_time'][size2][impl]
                 increase = (time2 - time1) / time1 * 100
                 f.write(f"- {impl}: {increase:.2f}% \n")
         
-        f.write("\n### 3. Trade-offs Antar Implementasi\n\n")
-        f.write("#### Brute Force vs Dynamic Programming\n")
-        f.write("- **Kelebihan Brute Force:**\n")
-        f.write("  - Implementasi sederhana dan mudah dipahami\n")
-        f.write("  - Menemukan semua solusi yang mungkin\n")
-        f.write("  - Cocok untuk dataset kecil\n")
-        f.write("- **Kelebihan Dynamic Programming:**\n")
-        f.write("  - Efisiensi waktu yang jauh lebih baik\n")
-        f.write("  - Dapat menangani dataset besar\n")
-        f.write("  - Menyimpan solusi sub-masalah\n\n")
+        # Penggunaan Memori
+        f.write("\n### Penggunaan Memori\n")
+        f.write("| Size | " + " | ".join(metrics['peak_memory'][test_sizes[0]].keys()) + " |\n")
+        f.write("|" + "---|" * (len(metrics['peak_memory'][test_sizes[0]]) + 1) + "\n")
         
-        f.write("#### Top-down vs Bottom-up DP\n")
-        f.write("- **Top-down (Memoization):**\n")
-        f.write("  - Lebih intuitif dan mirip dengan rekursi\n")
-        f.write("  - Hanya menghitung sub-masalah yang diperlukan\n")
-        f.write("  - Overhead dari rekursi\n")
-        f.write("- **Bottom-up (Tabulation):**\n")
-        f.write("  - Menghindari overhead rekursi\n")
-        f.write("  - Menghitung semua sub-masalah secara sistematis\n")
-        f.write("  - Lebih efisien dalam penggunaan memori\n\n")
+        for size in test_sizes:
+            row = [str(size)]
+            for impl in metrics['peak_memory'][test_sizes[0]].keys():
+                memory_val = metrics['peak_memory'][size][impl]
+                row.append(format_bytes(memory_val))
+            f.write("| " + " | ".join(row) + " |\n")
+        f.write("\n")
         
-        f.write("### 4. Kesimpulan dan Rekomendasi\n\n")
-        f.write("Berdasarkan hasil pengujian empiris:\n\n")
+        # Analisis Hasil dan Efisiensi
+        f.write("## Analisis Hasil\n")
+        f.write("### Nilai Optimal dan Pola Pemotongan\n")
+        f.write("| Size | " + " | ".join(metrics['solution_quality'][test_sizes[0]].keys()) + " |\n")
+        f.write("|" + "---|" * (len(metrics['solution_quality'][test_sizes[0]]) + 1) + "\n")
         
-        # Hitung rata-rata waktu eksekusi untuk setiap implementasi
+        for size in test_sizes:
+            row = [str(size)]
+            for impl in metrics['solution_quality'][test_sizes[0]].keys():
+                value = metrics['solution_quality'][size][impl]
+                cuts = metrics['cut_patterns'][size][impl]
+                row.append(f"{value} ({cuts})")
+            f.write("| " + " | ".join(row) + " |\n")
+        f.write("\n")
+        
+        # Detail Analisis Efisiensi
+        f.write("### Analisis Efisiensi Detail\n")
+        for size in test_sizes:
+            f.write(f"\n#### Size {size}\n")
+            prices = metrics['prices'][size]
+            
+            # Hitung harga per unit jika tidak memotong
+            no_cut_price = prices[size-1] if size-1 < len(prices) and prices[size-1] > 0 else 1
+            
+            for impl in metrics['solution_quality'][test_sizes[0]].keys():
+                value = metrics['solution_quality'][size][impl]
+                cuts = metrics['cut_patterns'][size][impl]
+                
+                if not cuts:  # Skip jika tidak ada pola potong
+                    continue
+                
+                total_length = sum(cuts)
+                if total_length == 0:  # Hindari pembagian dengan nol
+                    continue
+                    
+                price_per_unit = value / total_length if total_length > 0 else 0
+                
+                # Hindari pembagian dengan nol
+                if no_cut_price > 0:
+                    relative_saving = ((price_per_unit/(no_cut_price/size)) - 1) * 100
+                else:
+                    relative_saving = 0
+                
+                f.write(f"\n**{impl}**\n")
+                f.write(f"- Nilai Total: {value}\n")
+                f.write(f"- Pola Potong: {cuts}\n")
+                f.write(f"- Harga per Unit: {price_per_unit:.2f}\n")
+                f.write(f"- Efisiensi vs No Cut: {relative_saving:.1f}%\n")
+                
+                # Detail perhitungan
+                f.write("- Detail perhitungan:\n")
+                f.write("```\n")
+                cut_frequency = {}
+                for cut in cuts:
+                    cut_frequency[cut] = cut_frequency.get(cut, 0) + 1
+                
+                total = 0
+                for cut, freq in sorted(cut_frequency.items()):
+                    price = prices[cut-1]
+                    total += price * freq
+                    cut_price_per_unit = price / cut
+                    f.write(f"  Panjang {cut} (x{freq}): {price} (per unit: {cut_price_per_unit:.2f})\n")
+                f.write(f"  Total: {total}\n")
+                f.write("```\n")
+        
+        # Kesimpulan
+        f.write("\n## Kesimpulan\n\n")
+        
+        # Hitung rata-rata waktu eksekusi
         avg_times = {}
         for impl in metrics['execution_time'][test_sizes[0]].keys():
             times = [metrics['execution_time'][size][impl] for size in test_sizes]
             avg_times[impl] = sum(times) / len(times)
         
-        # Urutkan implementasi berdasarkan rata-rata waktu
         sorted_impls = sorted(avg_times.items(), key=lambda x: x[1])
         
-        f.write("1. **Performa Terbaik:** " + sorted_impls[0][0] + "\n")
-        f.write("2. **Performa Menengah:** " + sorted_impls[1][0] + " dan " + sorted_impls[2][0] + "\n")
-        f.write("3. **Performa Terendah:** " + sorted_impls[-1][0] + "\n\n")
+        f.write("### Performa Implementasi\n")
+        f.write(f"1. **Performa Terbaik:** {sorted_impls[0][0]}\n")
+        f.write(f"2. **Performa Menengah:** {', '.join(impl[0] for impl in sorted_impls[1:-1])}\n")
+        f.write(f"3. **Performa Terendah:** {sorted_impls[-1][0]}\n\n")
         
-        f.write("**Rekomendasi Penggunaan:**\n")
+        f.write("### Rekomendasi Penggunaan\n")
         f.write("1. Untuk dataset kecil (n ≤ 10): Semua implementasi dapat digunakan\n")
         f.write("2. Untuk dataset menengah (10 < n ≤ 20): Gunakan implementasi DP\n")
         f.write("3. Untuk dataset besar (n > 20): Gunakan Bottom-up DP atau Space Optimized DP\n")
         f.write("4. Jika memori terbatas: Gunakan Space Optimized DP\n")
-        f.write("5. Untuk tujuan pembelajaran/debugging: Gunakan Top-down DP\n")
+        f.write("5. Untuk tujuan pembelajaran/debugging: Gunakan Top-down DP\n\n")
         
-        # Tambahkan referensi ke gambar
-        f.write("\n## Visualisasi Hasil\n\n")
+        # Visualisasi
+        f.write("\n## Visualisasi\n")
         f.write("### Perbandingan Waktu Eksekusi\n")
         f.write("![Perbandingan Waktu Eksekusi](execution_time_comparison.png)\n\n")
         
-        f.write("### Analisis Harga per Ukuran\n")
-        for size in test_sizes:
-            f.write(f"#### Ukuran Rod: {size}\n")
-            f.write(f"![Analisis Harga Size {size}](price_analysis_size_{size}.png)\n\n")
-        
         f.write("### Analisis Pola Pemotongan\n")
         f.write("![Analisis Pola Pemotongan](cut_pattern_analysis.png)\n\n")
-        
-        f.write("### Perbandingan Penggunaan Memori\n")
-        f.write("![Perbandingan Penggunaan Memori](memory_usage_comparison.png)\n\n")
-        f.write("### Pertumbuhan Penggunaan Memori\n")
-        f.write("![Pertumbuhan Penggunaan Memori](memory_growth.png)\n\n")
     
     print(f"Analysis saved to {analysis_file}")
-    
     return result_dir

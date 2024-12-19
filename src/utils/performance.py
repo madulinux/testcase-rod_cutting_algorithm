@@ -1,4 +1,5 @@
 import time
+import tracemalloc
 import sys
 import psutil
 import os
@@ -21,40 +22,22 @@ def format_bytes(size):
     return f"{size:.2f} TB"
 
 def measure_performance(func):
-    """
-    Decorator untuk mengukur waktu eksekusi dan penggunaan memori
-    """
+    """Decorator untuk mengukur kinerja fungsi"""
     def wrapper(*args, **kwargs):
-        # Ukur memori sebelum
-        memory_before = get_memory_usage()
+        # Start memory tracking
+        tracemalloc.start()
         
-        # Ukur waktu
-        start_time = time.time()
+        # Execute function
         result = func(*args, **kwargs)
-        execution_time = time.time() - start_time
         
-        # Ukur memori setelah
-        memory_after = get_memory_usage()
+        # Get peak memory
+        peak = tracemalloc.get_traced_memory()[1]
+        tracemalloc.stop()
         
-        # Hitung penggunaan memori berdasarkan struktur data
-        def calculate_memory(obj):
-            if isinstance(obj, (list, tuple)):
-                return sys.getsizeof(obj) + sum(calculate_memory(item) for item in obj)
-            elif isinstance(obj, dict):
-                return sys.getsizeof(obj) + sum(calculate_memory(k) + calculate_memory(v) for k, v in obj.items())
-            elif isinstance(obj, (int, float)):
-                return sys.getsizeof(obj)
-            return sys.getsizeof(obj)
-        
-        # Hitung memori yang digunakan selama eksekusi
-        memory_used = memory_after - memory_before
-        
-        # Jika memory_used terlalu kecil atau negatif, gunakan ukuran struktur data
-        if memory_used <= 0:
-            result_memory = calculate_memory(result)
-            args_memory = sum(calculate_memory(arg) for arg in args)
-            memory_used = result_memory + args_memory
-        
-        return result, execution_time, memory_used
+        # If result is a tuple, return tuple with peak memory
+        if isinstance(result, tuple):
+            return (*result, peak)
+        # If result is not a tuple, return tuple of result and peak memory
+        return result, peak
     
     return wrapper
