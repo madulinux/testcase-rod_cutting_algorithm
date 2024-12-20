@@ -1,5 +1,7 @@
 # Analisis Rod Cutting Problem
 
+### Tanggal Pengujian: 2024-12-20 14:57:36
+
 ## Kategorisasi Implementasi
 
 ### 1. Implementasi Tanpa Dynamic Programming (Brute Force)
@@ -155,41 +157,41 @@ Panjang yang diperbolehkan: [2, 3, 4]
 ### Waktu Eksekusi
 | Size | Pure Recursive (Brute Force) | Iterative (Brute Force) | Recursive with Memoization (Top-down DP) | Bottom-up DP | Space Optimized DP |
 |---|---|---|---|---|---|
-| 5 | 0.000310s | 0.000128s | 0.000204s | 0.000113s | 0.000102s |
-| 7 | 0.000241s | 0.000229s | 0.000275s | 0.000147s | 0.000266s |
-| 11 | 0.001012s | 0.000919s | 0.000401s | 0.000160s | 0.000153s |
-| 13 | 0.001905s | 0.001048s | 0.000381s | 0.000504s | 0.000550s |
-| 17 | 0.007406s | 0.003150s | 0.000353s | 0.000335s | 0.000345s |
+| 5 | 0.000186s | 0.000174s | 0.000176s | 0.000224s | 0.000159s |
+| 7 | 0.000279s | 0.000165s | 0.000243s | 0.000121s | 0.000109s |
+| 11 | 0.001254s | 0.001184s | 0.000447s | 0.000335s | 0.000173s |
+| 13 | 0.001743s | 0.001241s | 0.000558s | 0.000426s | 0.000375s |
+| 17 | 0.007001s | 0.003096s | 0.000324s | 0.000141s | 0.000139s |
 
 ### Analisis Peningkatan Waktu
 
 #### Peningkatan dari ukuran 5 ke 7:
-- Pure Recursive (Brute Force): -22.15% 
-- Iterative (Brute Force): 79.10% 
-- Recursive with Memoization (Top-down DP): 34.70% 
-- Bottom-up DP: 29.96% 
-- Space Optimized DP: 159.91% 
+- Pure Recursive (Brute Force): 49.81% 
+- Iterative (Brute Force): -5.21% 
+- Recursive with Memoization (Top-down DP): 38.08% 
+- Bottom-up DP: -46.11% 
+- Space Optimized DP: -31.48% 
 
 #### Peningkatan dari ukuran 7 ke 11:
-- Pure Recursive (Brute Force): 319.47% 
-- Iterative (Brute Force): 301.56% 
-- Recursive with Memoization (Top-down DP): 45.88% 
-- Bottom-up DP: 8.93% 
-- Space Optimized DP: -42.42% 
+- Pure Recursive (Brute Force): 349.49% 
+- Iterative (Brute Force): 617.77% 
+- Recursive with Memoization (Top-down DP): 84.00% 
+- Bottom-up DP: 177.67% 
+- Space Optimized DP: 58.64% 
 
 #### Peningkatan dari ukuran 11 ke 13:
-- Pure Recursive (Brute Force): 88.22% 
-- Iterative (Brute Force): 13.98% 
-- Recursive with Memoization (Top-down DP): -4.99% 
-- Bottom-up DP: 215.05% 
-- Space Optimized DP: 259.35% 
+- Pure Recursive (Brute Force): 39.02% 
+- Iterative (Brute Force): 4.79% 
+- Recursive with Memoization (Top-down DP): 24.80% 
+- Bottom-up DP: 27.19% 
+- Space Optimized DP: 116.97% 
 
 #### Peningkatan dari ukuran 13 ke 17:
-- Pure Recursive (Brute Force): 288.76% 
-- Iterative (Brute Force): 200.68% 
-- Recursive with Memoization (Top-down DP): -7.32% 
-- Bottom-up DP: -33.54% 
-- Space Optimized DP: -37.28% 
+- Pure Recursive (Brute Force): 301.66% 
+- Iterative (Brute Force): 149.47% 
+- Recursive with Memoization (Top-down DP): -41.92% 
+- Bottom-up DP: -66.87% 
+- Space Optimized DP: -62.94% 
 
 ### Penggunaan Memori
 | Size | Pure Recursive (Brute Force) | Iterative (Brute Force) | Recursive with Memoization (Top-down DP) | Bottom-up DP | Space Optimized DP |
@@ -537,33 +539,33 @@ Panjang yang diperbolehkan: [2, 3, 4]
 ### 1. Trade-off Waktu vs Memori
 
 #### Pure Recursive (Brute Force)
-- Rata-rata Waktu: 0.002175s
+- Rata-rata Waktu: 0.002093s
 - Rata-rata Memori: 1.36 KB
-- Waktu Maksimum: 0.007406s
+- Waktu Maksimum: 0.007001s
 - Memori Maksimum: 1.86 KB
 
 #### Iterative (Brute Force)
-- Rata-rata Waktu: 0.001095s
+- Rata-rata Waktu: 0.001172s
 - Rata-rata Memori: 1.34 KB
-- Waktu Maksimum: 0.003150s
+- Waktu Maksimum: 0.003096s
 - Memori Maksimum: 1.69 KB
 
 #### Recursive with Memoization (Top-down DP)
-- Rata-rata Waktu: 0.000323s
+- Rata-rata Waktu: 0.000350s
 - Rata-rata Memori: 1.69 KB
-- Waktu Maksimum: 0.000401s
+- Waktu Maksimum: 0.000558s
 - Memori Maksimum: 2.27 KB
 
 #### Bottom-up DP
-- Rata-rata Waktu: 0.000252s
+- Rata-rata Waktu: 0.000249s
 - Rata-rata Memori: 731.20 bytes
-- Waktu Maksimum: 0.000504s
+- Waktu Maksimum: 0.000426s
 - Memori Maksimum: 1.01 KB
 
 #### Space Optimized DP
-- Rata-rata Waktu: 0.000283s
+- Rata-rata Waktu: 0.000191s
 - Rata-rata Memori: 683.20 bytes
-- Waktu Maksimum: 0.000550s
+- Waktu Maksimum: 0.000375s
 - Memori Maksimum: 984.00 bytes
 
 ### 2. Karakteristik Implementasi
@@ -669,18 +671,18 @@ Semua urutan valid selama menghasilkan nilai optimal yang sama.
 
 Berdasarkan data pengujian dengan ukuran input [5, 7, 11, 13, 17]:
 - **Waktu Eksekusi Terbaik:**
-  - Space Optimized DP: 0.000102s
-  - Bottom-up DP: 0.000113s
-  - Iterative (Brute Force): 0.000128s
-  - Recursive with Memoization (Top-down DP): 0.000204s
-  - Pure Recursive (Brute Force): 0.000241s
+  - Space Optimized DP: 0.000109s
+  - Bottom-up DP: 0.000121s
+  - Iterative (Brute Force): 0.000165s
+  - Recursive with Memoization (Top-down DP): 0.000176s
+  - Pure Recursive (Brute Force): 0.000186s
 
 - **Waktu Eksekusi Terburuk:**
-  - Pure Recursive (Brute Force): 0.007406s
-  - Iterative (Brute Force): 0.003150s
-  - Space Optimized DP: 0.000550s
-  - Bottom-up DP: 0.000504s
-  - Recursive with Memoization (Top-down DP): 0.000401s
+  - Pure Recursive (Brute Force): 0.007001s
+  - Iterative (Brute Force): 0.003096s
+  - Recursive with Memoization (Top-down DP): 0.000558s
+  - Bottom-up DP: 0.000426s
+  - Space Optimized DP: 0.000375s
 
 ### 2. Analisis Pola Pemotongan
 ![Analisis Pola Pemotongan](cut_pattern_analysis.png)
@@ -753,8 +755,8 @@ Perbandingan relatif penggunaan memori:
 ## Kesimpulan
 
 ### Performa Implementasi
-1. **Performa Terbaik:** Bottom-up DP
-2. **Performa Menengah:** Space Optimized DP, Recursive with Memoization (Top-down DP), Iterative (Brute Force)
+1. **Performa Terbaik:** Space Optimized DP
+2. **Performa Menengah:** Bottom-up DP, Recursive with Memoization (Top-down DP), Iterative (Brute Force)
 3. **Performa Terendah:** Pure Recursive (Brute Force)
 
 ### Rekomendasi Penggunaan

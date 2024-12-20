@@ -523,7 +523,8 @@ def visualize_results(metrics, test_sizes, result_dir):
 def save_analysis_to_file(metrics, test_sizes):
     """Menyimpan hasil analisis ke file markdown dengan detail lengkap"""
     # Buat direktori untuk hasil
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    now = datetime.now()
+    timestamp = now.strftime("%Y%m%d_%H%M%S")
     result_dir = f"results/analysis_{timestamp}"
     os.makedirs(result_dir, exist_ok=True)
     analysis_file = f"{result_dir}/analysis.md"
@@ -533,7 +534,7 @@ def save_analysis_to_file(metrics, test_sizes):
     
     with open(analysis_file, 'w') as f:
         f.write("# Analisis Rod Cutting Problem\n\n")
-        
+        f.write(f"### Tanggal Pengujian: {now.strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         # Kategorisasi dan Penjelasan Implementasi
         f.write("## Kategorisasi Implementasi\n\n")
         f.write("### 1. Implementasi Tanpa Dynamic Programming (Brute Force)\n\n")
