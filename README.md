@@ -30,12 +30,39 @@ pip install -r requirements.txt
 
 ## Cara Penggunaan
 
-1. Jalankan pengujian performa:
+1. Jalankan pengujian performa dengan test case otomatis:
 ```bash
 python app.py
 ```
+```bash
+Rod Cutting Analysis
+1. Gunakan test case otomatis
+2. Input manual
+Pilih mode (1/2): 1
+```
 
-2. Hasil analisis akan disimpan di folder `results/` dengan format nama `performance_analysis_YYYYMMDD_HHMMSS.md`
+2. Pengujian performa dengan input manual:
+```bash
+python app.py
+```
+```bash
+Rod Cutting Problem - Input Data
+================================
+Masukkan ukuran batang yang akan diuji
+(Pisahkan dengan koma, contoh: 5,7,10,13)
+Ukuran batang: 5,7,11,13,17
+Masukkan panjang potong yang diperbolehkan
+(Pisahkan dengan koma, contoh: 2,5,7)
+Tekan Enter untuk mengizinkan semua panjang
+Panjang potong: 2,3,4
+Masukkan harga untuk setiap panjang batang
+Masukkan harga hanya untuk panjang yang diperbolehkan:
+Panjang 2: 12
+Panjang 3: 20
+Panjang 4: 30
+```
+
+3. Hasil analisis akan disimpan di folder `results/` dengan format nama `performance_analysis_YYYYMMDD_HHMMSS.md`
 
 ## Kategorisasi Implementasi
 
