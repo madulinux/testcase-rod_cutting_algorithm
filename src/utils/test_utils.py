@@ -664,7 +664,7 @@ def save_analysis_to_file(metrics, test_sizes):
                 
                 if not cuts:  # Skip jika tidak ada pola potong
                     continue
-                
+                    
                 total_length = sum(cuts)
                 if total_length == 0:  # Hindari pembagian dengan nol
                     continue
@@ -699,6 +699,179 @@ def save_analysis_to_file(metrics, test_sizes):
                 f.write(f"  Total: {total}\n")
                 f.write("```\n")
         
+        # Analisis Trade-off
+        f.write("\n## Analisis Trade-off\n\n")
+        
+        f.write("### 1. Trade-off Waktu vs Memori\n")
+        # Hitung rata-rata waktu dan memori untuk setiap implementasi
+        avg_metrics = {}
+        for impl in metrics['execution_time'][test_sizes[0]].keys():
+            times = [metrics['execution_time'][size][impl] for size in test_sizes]
+            memories = [metrics['peak_memory'][size][impl] for size in test_sizes]
+            avg_metrics[impl] = {
+                'avg_time': sum(times) / len(times),
+                'avg_memory': sum(memories) / len(memories),
+                'max_time': max(times),
+                'max_memory': max(memories)
+            }
+        
+        for impl, stats in avg_metrics.items():
+            f.write(f"\n#### {impl}\n")
+            f.write(f"- Rata-rata Waktu: {stats['avg_time']:.6f}s\n")
+            f.write(f"- Rata-rata Memori: {format_bytes(stats['avg_memory'])}\n")
+            f.write(f"- Waktu Maksimum: {stats['max_time']:.6f}s\n")
+            f.write(f"- Memori Maksimum: {format_bytes(stats['max_memory'])}\n")
+        
+        f.write("\n### 2. Karakteristik Implementasi\n\n")
+        f.write("#### Pure Recursive (Brute Force)\n")
+        f.write("- **Kelebihan:**\n")
+        f.write("  - Implementasi sederhana dan mudah dipahami\n")
+        f.write("  - Cocok untuk debugging karena alur eksekusi jelas\n")
+        f.write("- **Kekurangan:**\n")
+        f.write("  - Waktu eksekusi meningkat eksponensial\n")
+        f.write("  - Banyak perhitungan redundan\n")
+        f.write("- **Best Case:** Input kecil (n ≤ 10) untuk pembelajaran\n\n")
+        
+        f.write("#### Iterative (Brute Force)\n")
+        f.write("- **Kelebihan:**\n")
+        f.write("  - Menghindari overhead rekursi\n")
+        f.write("  - Lebih efisien dalam penggunaan call stack\n")
+        f.write("- **Kekurangan:**\n")
+        f.write("  - Tetap memerlukan waktu eksponensial\n")
+        f.write("  - Penggunaan memori untuk menyimpan kombinasi\n")
+        f.write("- **Best Case:** Input kecil dengan batasan memori longgar\n\n")
+        
+        f.write("#### Recursive with Memoization (Top-down DP)\n")
+        f.write("- **Kelebihan:**\n")
+        f.write("  - Hanya menghitung subproblem yang diperlukan\n")
+        f.write("  - Mudah diimplementasi dari versi rekursif\n")
+        f.write("- **Kekurangan:**\n")
+        f.write("  - Overhead dari rekursi masih ada\n")
+        f.write("  - Penggunaan memori untuk memoization\n")
+        f.write("- **Best Case:** Input menengah dengan subproblem berulang\n\n")
+        
+        f.write("#### Bottom-up DP\n")
+        f.write("- **Kelebihan:**\n")
+        f.write("  - Menghindari overhead rekursi\n")
+        f.write("  - Lebih efisien dalam penggunaan memori\n")
+        f.write("- **Kekurangan:**\n")
+        f.write("  - Menghitung semua subproblem\n")
+        f.write("  - Memerlukan array tambahan untuk tracking\n")
+        f.write("- **Best Case:** Input besar dengan memori mencukupi\n\n")
+        
+        f.write("#### Space Optimized DP\n")
+        f.write("- **Kelebihan:**\n")
+        f.write("  - Penggunaan memori paling efisien\n")
+        f.write("  - Kinerja waktu tetap kompetitif\n")
+        f.write("- **Kekurangan:**\n")
+        f.write("  - Implementasi lebih kompleks\n")
+        f.write("  - Tracking solusi lebih sulit\n")
+        f.write("- **Best Case:** Input besar dengan batasan memori ketat\n\n")
+        
+        f.write("### 3. Perbedaan Urutan Pemotongan\n\n")
+        f.write("Beberapa implementasi menghasilkan urutan pemotongan yang berbeda (misalnya [2, 3] vs [3, 2]) karena:\n\n")
+        f.write("1. **Arah Pencarian:**\n")
+        f.write("   - Top-down: Memecah masalah dari atas ke bawah\n")
+        f.write("   - Bottom-up: Membangun solusi dari bawah ke atas\n\n")
+        f.write("2. **Prioritas Pemilihan:**\n")
+        f.write("   - Beberapa implementasi mengutamakan potongan kecil dulu\n")
+        f.write("   - Yang lain mengutamakan potongan besar dulu\n\n")
+        f.write("3. **Urutan Iterasi:**\n")
+        f.write("   - Iterative: Mencoba kombinasi secara sekuensial\n")
+        f.write("   - DP: Mengoptimalkan berdasarkan subproblem\n\n")
+        f.write("Semua urutan valid selama menghasilkan nilai optimal yang sama.\n\n")
+        
+        f.write("### 4. Rekomendasi Penggunaan Berdasarkan Karakteristik Input\n\n")
+        f.write("#### Berdasarkan Ukuran Input\n")
+        f.write("- **Kecil (n ≤ 10):**\n")
+        f.write("  - Gunakan Pure Recursive untuk pembelajaran\n")
+        f.write("  - Atau Iterative untuk performa lebih baik\n\n")
+        f.write("- **Menengah (10 < n ≤ 20):**\n")
+        f.write("  - Gunakan Top-down DP jika subproblem sedikit\n")
+        f.write("  - Atau Bottom-up DP untuk konsistensi\n\n")
+        f.write("- **Besar (n > 20):**\n")
+        f.write("  - Gunakan Bottom-up DP untuk kinerja optimal\n")
+        f.write("  - Atau Space Optimized DP jika memori terbatas\n\n")
+        
+        f.write("#### Berdasarkan Batasan Panjang Potong\n")
+        f.write("- **Sedikit Pilihan:**\n")
+        f.write("  - Top-down DP lebih efisien karena subproblem lebih sedikit\n\n")
+        f.write("- **Banyak Pilihan:**\n")
+        f.write("  - Bottom-up DP atau Space Optimized DP untuk konsistensi\n\n")
+        
+        f.write("#### Berdasarkan Kebutuhan Debugging\n")
+        f.write("- **Fase Development:**\n")
+        f.write("  - Gunakan Pure Recursive atau Top-down DP\n")
+        f.write("  - Lebih mudah di-debug dan dipahami\n\n")
+        f.write("- **Fase Production:**\n")
+        f.write("  - Gunakan Bottom-up DP atau Space Optimized DP\n")
+        f.write("  - Performa dan efisiensi lebih penting\n\n")
+        
+        # Visualisasi
+        f.write("\n## Visualisasi\n")
+        
+        # Perbandingan Waktu Eksekusi
+        f.write("### 1. Perbandingan Waktu Eksekusi\n")
+        f.write("![Perbandingan Waktu Eksekusi](execution_time_comparison.png)\n\n")
+        
+        # Analisis waktu eksekusi berdasarkan data
+        max_times = {impl: max(metrics['execution_time'][size][impl] for size in test_sizes) 
+                    for impl in metrics['execution_time'][test_sizes[0]].keys()}
+        min_times = {impl: min(metrics['execution_time'][size][impl] for size in test_sizes) 
+                    for impl in metrics['execution_time'][test_sizes[0]].keys()}
+        
+        f.write(f"Berdasarkan data pengujian dengan ukuran input {test_sizes}:\n")
+        f.write("- **Waktu Eksekusi Terbaik:**\n")
+        for impl, min_time in sorted(min_times.items(), key=lambda x: x[1]):
+            f.write(f"  - {impl}: {min_time:.6f}s\n")
+        
+        f.write("\n- **Waktu Eksekusi Terburuk:**\n")
+        for impl, max_time in sorted(max_times.items(), key=lambda x: x[1], reverse=True):
+            f.write(f"  - {impl}: {max_time:.6f}s\n")
+        
+        # Analisis Pola Pemotongan
+        f.write("\n### 2. Analisis Pola Pemotongan\n")
+        f.write("![Analisis Pola Pemotongan](cut_pattern_analysis.png)\n\n")
+        f.write("Hasil pola pemotongan untuk setiap ukuran input:\n")
+        for size in test_sizes:
+            f.write(f"\n**Ukuran {size}:**\n")
+            for impl in metrics['cut_patterns'][size].keys():
+                cuts = metrics['cut_patterns'][size][impl]
+                if cuts:
+                    f.write(f"- {impl}: {cuts} (Nilai: {metrics['solution_quality'][size][impl]})\n")
+        
+        # Visualisasi Penggunaan Memori
+        f.write("\n### 3. Visualisasi Penggunaan Memori\n")
+        f.write("#### a. Grafik Pertumbuhan Memori\n")
+        f.write("![Memory Growth](memory_growth.png)\n\n")
+        
+        # Analisis memori berdasarkan data
+        max_memory = {impl: max(metrics['peak_memory'][size][impl] for size in test_sizes) 
+                     for impl in metrics['peak_memory'][test_sizes[0]].keys()}
+        min_memory = {impl: min(metrics['peak_memory'][size][impl] for size in test_sizes) 
+                     for impl in metrics['peak_memory'][test_sizes[0]].keys()}
+        
+        f.write("Pengukuran penggunaan memori:\n")
+        f.write("- **Memori Minimum:**\n")
+        for impl, min_mem in sorted(min_memory.items(), key=lambda x: x[1]):
+            f.write(f"  - {impl}: {format_bytes(min_mem)}\n")
+        
+        f.write("\n- **Memori Maksimum:**\n")
+        for impl, max_mem in sorted(max_memory.items(), key=lambda x: x[1], reverse=True):
+            f.write(f"  - {impl}: {format_bytes(max_mem)}\n")
+        
+        f.write("\n#### b. Perbandingan Penggunaan Memori\n")
+        f.write("![Memory Usage Comparison](memory_usage_comparison.png)\n\n")
+        
+        # Perbandingan relatif memori
+        base_impl = min(max_memory.items(), key=lambda x: x[1])[0]
+        base_mem = max_memory[base_impl]
+        f.write("Perbandingan relatif penggunaan memori:\n")
+        for impl, max_mem in max_memory.items():
+            if impl != base_impl:
+                ratio = max_mem / base_mem
+                f.write(f"- {impl} menggunakan {ratio:.2f}x lebih banyak memori dibanding {base_impl}\n")
+        
         # Kesimpulan
         f.write("\n## Kesimpulan\n\n")
         
@@ -721,14 +894,14 @@ def save_analysis_to_file(metrics, test_sizes):
         f.write("3. Untuk dataset besar (n > 20): Gunakan Bottom-up DP atau Space Optimized DP\n")
         f.write("4. Jika memori terbatas: Gunakan Space Optimized DP\n")
         f.write("5. Untuk tujuan pembelajaran/debugging: Gunakan Top-down DP\n\n")
-        
-        # Visualisasi
-        f.write("\n## Visualisasi\n")
-        f.write("### Perbandingan Waktu Eksekusi\n")
-        f.write("![Perbandingan Waktu Eksekusi](execution_time_comparison.png)\n\n")
-        
-        f.write("### Analisis Pola Pemotongan\n")
-        f.write("![Analisis Pola Pemotongan](cut_pattern_analysis.png)\n\n")
     
     print(f"Analysis saved to {analysis_file}")
     return result_dir
+
+def main():
+    test_sizes = [10, 20, 30, 40, 50]
+    metrics = test_performance(test_sizes)
+    save_analysis_to_file(metrics, test_sizes)
+
+if __name__ == "__main__":
+    main()

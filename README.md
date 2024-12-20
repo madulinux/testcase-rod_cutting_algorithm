@@ -25,7 +25,7 @@ rod_cutting/
 ## Instalasi
 ```bash
 # Install dependencies
-pip install psutil
+pip install -r requirements.txt
 ```
 
 ## Cara Penggunaan
