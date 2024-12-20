@@ -38,7 +38,7 @@ def rod_cutting_pure_recursive(prices, n):
 - Kompleksitas Ruang: O(n) untuk memo dan call stack
 
 ```python
-def rod_cutting_memoization(prices, n, memo=None):
+def rod_cutting_recursive(prices, n, memo=None):
     if memo is None:
         memo = {}
     if n <= 0:
@@ -51,7 +51,7 @@ def rod_cutting_memoization(prices, n, memo=None):
     best_cuts = []
     
     for i in range(1, n + 1):
-        val, cuts = rod_cutting_memoization(prices, n - i, memo)
+        val, cuts = rod_cutting_recursive(prices, n - i, memo)
         current_value = prices[i-1] + val
         if current_value > max_val:
             max_val = current_value

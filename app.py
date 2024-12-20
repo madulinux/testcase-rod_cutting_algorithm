@@ -68,7 +68,7 @@ def main():
         # Test sizes dengan justifikasi:
         # Rentang panjang kecil ( n≤10).
         # Rentang panjang besar ( n>10).
-        test_sizes = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        test_sizes = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 20]
         
         # Jalankan pengujian dengan generate_test_case
         metrics = test_performance(test_sizes)

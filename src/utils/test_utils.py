@@ -1,8 +1,11 @@
 import random
 import os
 from datetime import datetime
+import math
 from src.utils.performance import format_bytes
-
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
 
 def generate_test_case(size, base_price=1000, pattern_type='balanced'):
     """
@@ -519,7 +522,6 @@ def visualize_results(metrics, test_sizes, result_dir):
     """
     import matplotlib.pyplot as plt
     import numpy as np
-    import seaborn as sns
     
     # Set default style yang lebih modern
     plt.rcParams['figure.facecolor'] = 'white'
