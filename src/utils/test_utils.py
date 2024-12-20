@@ -1,104 +1,152 @@
 import random
 import os
 from datetime import datetime
-from src.utils.performance import format_bytes
 import math
+from src.utils.performance import format_bytes
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
 
-def generate_test_case(size, base_price=10):
+def generate_test_case(size, base_price=1000, pattern_type='balanced'):
     """
     Menghasilkan test case untuk rod cutting problem dengan pola harga yang lebih variatif.
     
-    Strategi harga:
-    1. Sweet spots: Beberapa panjang tertentu memiliki harga yang sangat menguntungkan
-    2. Potongan pendek (1-3): Premium bervariasi (40-90%)
-    3. Potongan menengah (4-7): Kombinasi premium dan diskon
-    4. Potongan panjang (8+): Pola diskon yang bervariasi
+    Patterns:
+    1. 'balanced' - Pola seimbang dengan sweet spots dan variasi premium/diskon
+    2. 'linear' - Kenaikan harga linear dengan sedikit variasi
+    3. 'exponential' - Kenaikan harga eksponensial
+    4. 'sweet_spots_heavy' - Dominasi sweet spots dengan perbedaan signifikan
+    5. 'random' - Pola acak dengan batasan konsistensi minimal
+    
+    Strategi harga default (balanced):
+    1. Sweet spots: Beberapa panjang tertentu memiliki harga sangat menguntungkan
+       - Panjang 3: Premium 58%
+       - Panjang 4: Premium 57%
+    2. Potongan pendek (1-3): Premium bervariasi (40-60%)
+    3. Potongan menengah (4-7): Kombinasi premium (20-30%) dan diskon (5-10%)
+    4. Potongan panjang (8+): Pola diskon progresif
+       - Kelipatan 3: Diskon 15-40%
+       - Genap: Diskon 10-30%
+       - Ganjil: Diskon 5-25%
     
     Args:
-        size: Panjang maksimum rod
-        base_price: Harga dasar per unit panjang
-    Returns:
-        list: Daftar harga untuk setiap panjang
-    """
-    prices = []
-    # Tentukan sweet spots (panjang yang akan memiliki harga sangat menguntungkan)
-    sweet_spots = {
-        3: 1.9,  # 90% premium
-        5: 1.6,  # 60% premium
-        7: 1.4   # 40% premium
-    }
+        size (int): Panjang maksimum rod
+        base_price (int, optional): Harga dasar per unit panjang. Defaults to 10.
+        pattern_type (str, optional): Jenis pola harga. Defaults to 'balanced'.
+            Options: ['balanced', 'linear', 'exponential', 'sweet_spots_heavy', 'random']
     
-    for i in range(size):
-        length = i + 1
-        price = base_price * length
+    Returns:
+        list: Daftar harga untuk setiap panjang, dengan indeks 0 mewakili panjang 1
+    
+    Raises:
+        ValueError: Jika pattern_type tidak valid
+    """
+    if pattern_type not in ['balanced', 'linear', 'exponential', 'sweet_spots_heavy', 'random']:
+        raise ValueError(f"Pattern type '{pattern_type}' tidak valid")
+    
+    prices = []
+    
+    if pattern_type == 'balanced':
+        # Sweet spots dengan premium yang lebih seimbang
+        sweet_spots = {1: 1.36, 7: 1.4}
         
-        # Sweet spots calculation
-        if length in sweet_spots:
-            price *= sweet_spots[length]
-            # Tambah sedikit variasi
-            variation = random.uniform(-0.05, 0.05)
-            price *= (1 + variation)
+        for i in range(size):
+            length = i + 1
+            price = base_price * length
             
-        # Regular price calculation
-        elif length <= 3:
-            # Premium bervariasi untuk potongan pendek
-            premium = random.uniform(1.4, 1.7)  # 40-70% premium
-            price *= premium
-            
-        elif length <= 7:
-            if length % 2 == 0:  # Panjang genap
-                # Premium medium
-                premium = random.uniform(1.2, 1.3)
-                price *= premium
-            else:  # Panjang ganjil
-                # Sedikit diskon
-                discount = random.uniform(0.9, 0.95)
-                price *= discount
-                
-        else:
-            # Pola diskon yang lebih bervariasi untuk potongan panjang
-            if length % 3 == 0:  # Setiap kelipatan 3
-                discount = 0.85 - (0.02 * (length // 3))  # Diskon progresif
-                price *= max(0.6, discount)
-            elif length % 2 == 0:  # Panjang genap
-                discount = 0.9 - (0.01 * (length - 8))
-                price *= max(0.7, discount)
-            else:  # Panjang ganjil lainnya
-                discount = 0.95 - (0.015 * ((length - 8) // 2))
-                price *= max(0.75, discount)
-        
-        # Tambahkan variasi kecil
-        variation = random.uniform(-0.03, 0.03)
-        price *= (1 + variation)
-        
-        # Pembulatan dan pastikan harga minimal
-        price = max(int(price), base_price * length // 2)
-        
-        # Pastikan harga meningkat dengan pola yang masuk akal
-        if prices:
-            min_increase = base_price // 3
-            # Biarkan sweet spots memiliki lompatan harga yang lebih tinggi
             if length in sweet_spots:
-                price = max(price, prices[-1] + base_price)
+                price *= sweet_spots[length]
+            elif length <= 3:
+                # Premium moderat untuk potongan pendek
+                premium = random.uniform(1.35, 1.40)  # 35-40% premium
+                price *= premium
+            elif length <= 7:
+                if length % 2 == 0:
+                    # Premium seimbang untuk panjang genap
+                    premium = random.uniform(1.30, 1.35)  # 30-35% premium
+                    price *= premium
+                else:
+                    # Diskon minimal
+                    discount = random.uniform(0.95, 0.98)  # 2-5% diskon
+                    price *= discount
             else:
-                price = max(price, prices[-1] + min_increase)
-        
-        prices.append(price)
+                if length % 3 == 0:
+                    # Diskon moderat untuk kelipatan 3
+                    discount = 0.92 - (0.01 * (length // 3))
+                    price *= max(0.80, discount)
+                elif length % 2 == 0:
+                    # Diskon kecil untuk panjang genap
+                    discount = 0.95 - (0.005 * (length - 8))
+                    price *= max(0.85, discount)
+                else:
+                    # Diskon minimal untuk panjang ganjil
+                    discount = 0.97 - (0.005 * ((length - 8) // 2))
+                    price *= max(0.90, discount)
+            
+            variation = random.uniform(-0.03, 0.03)
+            price *= (1 + variation)
+            price = max(int(price), base_price * length // 2)
+            
+            if prices:
+                min_increase = base_price // 3
+                if length in sweet_spots:
+                    price = max(price, prices[-1] + base_price)
+                else:
+                    price = max(price, prices[-1] + min_increase)
+            
+            prices.append(price)
+            
+    elif pattern_type == 'linear':
+        for i in range(size):
+            variation = random.uniform(-0.05, 0.05)
+            price = base_price * (i + 1) * (1 + variation)
+            prices.append(max(int(price), base_price))
+            
+    elif pattern_type == 'exponential':
+        for i in range(size):
+            variation = random.uniform(-0.1, 0.1)
+            price = base_price * (1.5 ** (i + 1)) * (1 + variation)
+            prices.append(max(int(price), base_price))
+            
+    elif pattern_type == 'sweet_spots_heavy':
+        sweet_spots = {1: 2.2, 2: 2.2, 3: 2.3, 5: 2.3, 7: 2.35}
+        for i in range(size):
+            length = i + 1
+            price = base_price * length
+            if length in sweet_spots:
+                price *= sweet_spots[length]
+            else:
+                discount = random.uniform(0.6, 0.8)
+                price *= discount
+            prices.append(max(int(price), base_price))
+            
+    else:  # random
+        prev_price = base_price
+        for i in range(size):
+            min_price = prev_price + base_price // 2
+            max_price = prev_price * 2
+            price = random.uniform(min_price, max_price)
+            prices.append(max(int(price), base_price))
+            prev_price = price
     
     return prices
 
 def get_optimal_cuts(prices, n, max_value, allowed_lengths=None):
     """
-    Mendapatkan kombinasi potongan optimal untuk hasil tertentu,
-    mempertimbangkan kombinasi yang lebih variatif ketika nilai totalnya sama
+    Mendapatkan kombinasi potongan optimal untuk hasil tertentu.
     
     Args:
-        prices: List harga untuk setiap panjang
-        n: Panjang total rod
-        max_value: Nilai optimal yang dicari
-        allowed_lengths: Optional list of allowed cutting lengths
+        prices (list): Daftar harga untuk setiap panjang (0-indexed)
+        n (int): Panjang total rod
+        max_value (int): Nilai optimal yang dicari
+        allowed_lengths (list, optional): Daftar panjang potongan yang diperbolehkan.
+            Jika None, semua panjang diperbolehkan.
+    
     Returns:
-        list: Daftar panjang potongan optimal
+        list: Daftar panjang potongan optimal yang menghasilkan nilai max_value
+    
+    Raises:
+        ValueError: Jika tidak ditemukan kombinasi yang menghasilkan max_value
     """
     def find_all_cuts(length, target_value, memo=None):
         """
@@ -160,7 +208,14 @@ def get_optimal_cuts(prices, n, max_value, allowed_lengths=None):
 
 def measure_memory_usage(func, *args):
     """
-    Mengukur penggunaan memori maksimum selama eksekusi fungsi
+    Mengukur penggunaan memori maksimum selama eksekusi fungsi.
+    
+    Args:
+        func (callable): Fungsi yang akan diukur
+        *args: Argumen yang akan diteruskan ke fungsi
+    
+    Returns:
+        tuple: (hasil_fungsi, penggunaan_memori_dalam_bytes)
     """
     import tracemalloc
     import gc
@@ -184,14 +239,33 @@ def measure_memory_usage(func, *args):
 
 def test_performance(test_sizes, user_prices=None, allowed_lengths=None):
     """
-    Menguji dan membandingkan kinerja semua implementasi dengan analisis yang lebih detail
+    Menguji dan membandingkan kinerja semua implementasi rod cutting.
+    
+    Metrik yang diukur:
+    1. Waktu eksekusi (detik)
+    2. Penggunaan memori (bytes)
+    3. Nilai optimal yang didapat
+    4. Pola pemotongan optimal
+    5. Efisiensi algoritma
     
     Args:
-        test_sizes: List ukuran rod yang akan diuji
-        user_prices: Optional dictionary mapping panjang ke harga (untuk input manual)
-        allowed_lengths: Optional list of allowed cutting lengths
+        test_sizes (list): List ukuran rod yang akan diuji
+        user_prices (dict, optional): Dictionary mapping panjang ke harga (untuk input manual)
+        allowed_lengths (list, optional): Daftar panjang potongan yang diperbolehkan
+    
     Returns:
-        dict: Dictionary berisi hasil pengujian
+        dict: Dictionary berisi hasil pengujian dengan struktur:
+            {
+                'size_N': {
+                    'implementation_name': {
+                        'time': float,
+                        'memory': int,
+                        'value': int,
+                        'cuts': list,
+                        'efficiency': float
+                    }
+                }
+            }
     """
     from src.implementations.recursive import rod_cutting_pure_recursive, rod_cutting_recursive
     from src.implementations.iterative import rod_cutting_iterative
@@ -212,22 +286,29 @@ def test_performance(test_sizes, user_prices=None, allowed_lengths=None):
     
     implementations = {
         'Pure Recursive (Brute Force)': rod_cutting_pure_recursive,
-        'Iterative (Brute Force)': rod_cutting_iterative,
+        # 'Iterative (Brute Force)': rod_cutting_iterative,
         'Recursive with Memoization (Top-down DP)': rod_cutting_recursive,
-        'Bottom-up DP': rod_cutting_dp,
+        # 'Bottom-up DP': rod_cutting_dp,
         'Space Optimized DP': rod_cutting_dp_space_optimized
     }
     
     for size in test_sizes:
         if user_prices is None:
-            if allowed_lengths:
-                # Generate prices hanya untuk panjang yang diperbolehkan
-                prices = [0] * size  # Initialize dengan 0
-                for length in allowed_lengths:
-                    if length <= size:
-                        prices[length-1] = generate_test_case(length)[length-1]
-            else:
-                prices = generate_test_case(size)
+            # Generate prices once using the maximum length
+            if 'base_prices' not in metrics:
+                max_size = max(test_sizes)
+                if allowed_lengths:
+                    # Generate prices hanya untuk panjang yang diperbolehkan
+                    base_prices = [0] * max_size  # Initialize dengan 0
+                    for length in allowed_lengths:
+                        if length <= max_size:
+                            base_prices[length-1] = generate_test_case(length)[length-1]
+                else:
+                    base_prices = generate_test_case(max_size)
+                metrics['base_prices'] = base_prices
+            
+            # Use subset of the base prices for current size
+            prices = metrics['base_prices'][:size]
         else:
             # Gunakan harga dari user, hanya untuk panjang yang diperbolehkan
             prices = [0] * size  # Initialize dengan 0
@@ -321,7 +402,18 @@ def test_performance(test_sizes, user_prices=None, allowed_lengths=None):
 
 def analyze_prices(prices):
     """
-    Menganalisis karakteristik harga untuk setiap panjang
+    Menganalisis karakteristik harga untuk setiap panjang.
+    
+    Analisis meliputi:
+    1. Rasio harga per unit
+    2. Premium/diskon relatif terhadap harga linear
+    3. Sweet spots dan anomali harga
+    
+    Args:
+        prices (list): Daftar harga untuk setiap panjang
+    
+    Returns:
+        dict: Hasil analisis dengan metrik-metrik penting
     """
     analysis = {}
     avg_price_per_unit = sum(price/(i+1) for i, price in enumerate(prices)) / len(prices)
@@ -353,7 +445,23 @@ def analyze_prices(prices):
 
 def calculate_efficiency_metrics(value, cuts, prices, time, memory):
     """
-    Menghitung berbagai metrik efisiensi untuk solusi
+    Menghitung berbagai metrik efisiensi untuk solusi rod cutting.
+    
+    Metrik yang dihitung:
+    1. Nilai per unit waktu (value/time)
+    2. Nilai per byte memori (value/memory)
+    3. Rata-rata panjang potongan
+    4. Efisiensi harga (value/total_length)
+    
+    Args:
+        value (int): Nilai total yang didapat
+        cuts (list): Daftar panjang potongan
+        prices (list): Daftar harga untuk setiap panjang
+        time (float): Waktu eksekusi dalam detik
+        memory (int): Penggunaan memori dalam bytes
+    
+    Returns:
+        dict: Dictionary berisi metrik-metrik efisiensi
     """
     total_length = sum(cuts)
     value_per_unit = value / total_length
@@ -369,7 +477,16 @@ def calculate_efficiency_metrics(value, cuts, prices, time, memory):
 
 def format_cut_pattern(cuts):
     """
-    Format pola pemotongan dengan cara yang lebih informatif
+    Format pola pemotongan dengan cara yang lebih informatif.
+    
+    Format output: "[length_1] + [length_2] + ... = [total_length]"
+    Contoh: "3 + 3 + 2 = 8"
+    
+    Args:
+        cuts (list): Daftar panjang potongan
+    
+    Returns:
+        str: String terformat yang menggambarkan pola pemotongan
     """
     if not cuts:
         return "[]"
@@ -390,7 +507,18 @@ def format_cut_pattern(cuts):
 
 def visualize_results(metrics, test_sizes, result_dir):
     """
-    Membuat visualisasi hasil analisis menggunakan matplotlib
+    Membuat visualisasi hasil analisis menggunakan matplotlib.
+    
+    Grafik yang dihasilkan:
+    1. Waktu eksekusi vs Ukuran Input
+    2. Penggunaan Memori vs Ukuran Input
+    3. Nilai Optimal vs Ukuran Input
+    4. Efisiensi Algoritma vs Ukuran Input
+    
+    Args:
+        metrics (dict): Dictionary hasil pengujian
+        test_sizes (list): Daftar ukuran yang diuji
+        result_dir (str): Direktori untuk menyimpan hasil visualisasi
     """
     import matplotlib.pyplot as plt
     import numpy as np
@@ -495,7 +623,7 @@ def visualize_results(metrics, test_sizes, result_dir):
         colors = plt.cm.viridis(np.linspace(0, 1, len(test_sizes)))
         for size, color in zip(test_sizes, colors):
             # Ambil pola pemotongan dari implementasi DP (yang paling efisien)
-            cuts = metrics['cut_patterns'][size]['Bottom-up DP']
+            cuts = metrics['cut_patterns'][size]['Space Optimized DP']
             unique_cuts = len(set(cuts))
             avg_cut_length = sum(cuts) / len(cuts)
             
@@ -512,13 +640,91 @@ def visualize_results(metrics, test_sizes, result_dir):
         plt.savefig(f'{result_dir}/cut_pattern_analysis.png', dpi=300, bbox_inches='tight')
         plt.close()
 
+    def create_trade_off_plot(avg_metrics):
+        """Membuat plot trade-off"""
+        sns.set_style("whitegrid")
+        plt.figure(figsize=(15, 7))  # Tinggi figure ditambah
+        
+        # Scatter plot waktu vs memori
+        plt.subplot(1, 2, 1)
+        colors = ['#2ecc71', '#e74c3c', '#3498db']
+        for (impl, stats), color in zip(avg_metrics.items(), colors):
+            plt.scatter(stats['avg_time'], stats['avg_memory'], label=impl, s=150, c=color)
+        
+        plt.xlabel('Rata-rata Waktu Eksekusi (s)', fontsize=12)
+        plt.ylabel('Rata-rata Penggunaan Memori (bytes)', fontsize=12)
+        plt.title('Trade-off: Waktu vs Memori', fontsize=14, pad=20)
+        plt.legend(fontsize=10, bbox_to_anchor=(0.5, -0.2), loc='upper center')
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.tick_params(axis='both', which='major', labelsize=10)
+        
+        # Format y-axis untuk memori
+        ax = plt.gca()
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
+        
+        # Bar chart perbandingan
+        plt.subplot(1, 2, 2)
+        x = np.arange(len(avg_metrics))
+        width = 0.35
+        
+        # Normalisasi dan skala nilai
+        times = [stats['avg_time'] for stats in avg_metrics.values()]
+        max_time = max(times)
+        normalized_times = [t/max_time * 100 for t in times]  # Konversi ke persentase
+        
+        memories = [stats['avg_memory'] for stats in avg_metrics.values()]
+        max_memory = max(memories)
+        normalized_memories = [m/max_memory * 100 for m in memories]  # Konversi ke persentase
+        
+        bars1 = plt.bar(x - width/2, normalized_times, width, label='Waktu (%)', color='#3498db')
+        bars2 = plt.bar(x + width/2, normalized_memories, width, label='Memori (%)', color='#e74c3c')
+        
+        plt.xlabel('Implementasi', fontsize=12)
+        plt.ylabel('Persentase dari Nilai Maksimum (%)', fontsize=12)
+        plt.title('Perbandingan Relatif Waktu dan Memori', fontsize=14, pad=20)
+        plt.xticks(x, list(avg_metrics.keys()), rotation=30, ha='right', fontsize=10)
+        plt.legend(fontsize=10, bbox_to_anchor=(0.5, -0.2), loc='upper center')
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.tick_params(axis='both', which='major', labelsize=10)
+        
+        # Tambahkan nilai di atas bar
+        def autolabel(rects, is_percentage=True):
+            for rect in rects:
+                height = rect.get_height()
+                plt.text(rect.get_x() + rect.get_width()/2., height,
+                        f'{height:.1f}%' if is_percentage else f'{height:.2f}',
+                        ha='center', va='bottom', rotation=0, fontsize=10)
+        
+        autolabel(bars1)
+        autolabel(bars2)
+        
+        plt.tight_layout()
+        plt.savefig(os.path.join(result_dir, 'trade_off_analysis.png'), 
+                   dpi=300, 
+                   bbox_inches='tight',
+                   pad_inches=0.5)
+        plt.close()
+        
+    # Hitung rata-rata waktu dan memori untuk setiap implementasi
+    avg_metrics = {}
+    for impl in metrics['execution_time'][test_sizes[0]].keys():
+        times = [metrics['execution_time'][size][impl] for size in test_sizes]
+        memories = [metrics['peak_memory'][size][impl] for size in test_sizes]
+        avg_metrics[impl] = {
+            'avg_time': sum(times) / len(times),
+            'avg_memory': sum(memories) / len(memories),
+            'max_time': max(times),
+            'max_memory': max(memories)
+        }
+
     # Buat semua visualisasi
     create_performance_plot()
     create_memory_comparison_plot()
     create_memory_growth_plot()
-    for size in test_sizes:
-        create_price_analysis_plot(size)
+    # for size in test_sizes:
+    #     create_price_analysis_plot(size)
     create_cut_pattern_plot()
+    create_trade_off_plot(avg_metrics)
 
 def save_analysis_to_file(metrics, test_sizes):
     """Menyimpan hasil analisis ke file markdown dengan detail lengkap"""
@@ -530,9 +736,8 @@ def save_analysis_to_file(metrics, test_sizes):
     analysis_file = f"{result_dir}/analysis.md"
     
     # Buat visualisasi
-    visualize_results(metrics, test_sizes, result_dir)
-    
     with open(analysis_file, 'w') as f:
+        visualize_results(metrics, test_sizes, result_dir)
         f.write("# Analisis Rod Cutting Problem\n\n")
         f.write(f"### Tanggal Pengujian: {now.strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         # Kategorisasi dan Penjelasan Implementasi
@@ -544,11 +749,11 @@ def save_analysis_to_file(metrics, test_sizes):
         f.write("- Kompleksitas Waktu: O(2^n)\n")
         f.write("- Kompleksitas Ruang: O(n) untuk call stack\n\n")
         
-        f.write("#### Iterative (Brute Force)\n")
-        f.write("- Mencoba semua kombinasi pemotongan yang mungkin\n")
-        f.write("- Tidak menggunakan memoization atau tabulasi\n")
-        f.write("- Kompleksitas Waktu: O(n * 2^n)\n")
-        f.write("- Kompleksitas Ruang: O(2^n) untuk menyimpan kombinasi\n\n")
+        # f.write("#### Iterative (Brute Force)\n")
+        # f.write("- Mencoba semua kombinasi pemotongan yang mungkin\n")
+        # f.write("- Tidak menggunakan memoization atau tabulasi\n")
+        # f.write("- Kompleksitas Waktu: O(n * 2^n)\n")
+        # f.write("- Kompleksitas Ruang: O(2^n) untuk menyimpan kombinasi\n\n")
         
         f.write("### 2. Implementasi dengan Dynamic Programming\n\n")
         f.write("#### Recursive dengan Memoization (Top-down DP)\n")
@@ -557,15 +762,15 @@ def save_analysis_to_file(metrics, test_sizes):
         f.write("- Kompleksitas Waktu: O(n²)\n")
         f.write("- Trade-off antara waktu dan memori\n\n")
         
-        f.write("#### Bottom-up DP\n")
+        # f.write("#### Bottom-up DP\n")
+        # f.write("- Menggunakan DP dengan pendekatan bottom-up\n")
+        # f.write("- Membangun solusi dari subproblem terkecil\n")
+        # f.write("- Kompleksitas Waktu: O(n²)\n")
+        # f.write("- Lebih efisien dalam penggunaan memori dibanding top-down\n\n")
+        
+        f.write("#### Space Optimized DP\n")
         f.write("- Menggunakan DP dengan pendekatan bottom-up\n")
         f.write("- Membangun solusi dari subproblem terkecil\n")
-        f.write("- Kompleksitas Waktu: O(n²)\n")
-        f.write("- Lebih efisien dalam penggunaan memori dibanding top-down\n\n")
-        
-        f.write("### 3. Implementasi dengan Optimasi\n\n")
-        f.write("#### Space Optimized DP\n")
-        f.write("- Berbasis Bottom-up DP\n")
         f.write("- Mengoptimalkan penggunaan memori\n")
         f.write("- Kompleksitas Waktu: O(n²)\n")
         f.write("- Overhead memori minimal\n\n")
@@ -577,26 +782,49 @@ def save_analysis_to_file(metrics, test_sizes):
         
         # Hasil Pengujian Detail
         f.write("## Hasil Pengujian Detail\n\n")
-        for size in test_sizes:
-            f.write(f"### Ukuran Input: {size}\n\n")
+        f.write(f"### Daftar Panjang:\n")
+        list_sizes = [str(size) for size in test_sizes]
+        f.write(f"```\n[{', '.join(list_sizes)}]\n```\n\n")
+        # get max value from test_sizes
+        max_size = max(test_sizes)
+        # Tampilkan daftar harga
+        prices = [str(metrics['prices'][max_size][i]) for i in range(max_size)]
+        f.write(f"**Daftar Harga:**\n")
+        f.write(f"```\n[{', '.join(prices)}]\n```\n\n")
+        
+        # Analisis harga per unit
+        price_per_unit = [(i+1, float(metrics['prices'][max_size][i])/(i+1)) for i in range(max_size)]
+        max_price_per_unit = max(price_per_unit, key=lambda x: x[1])
+        
+        f.write("**Analisis Harga per Unit:**\n")
+        f.write("```\n")
+        for length, ppu in price_per_unit:
+            if (length, ppu) == max_price_per_unit:
+                f.write(f"  Panjang {length}: {ppu:.2f} per unit ⭐ (optimal per unit)\n")
+            else:
+                f.write(f"  Panjang {length}: {ppu:.2f} per unit\n")
+        f.write("```\n\n")
+
+        # for size in test_sizes:
+        #     f.write(f"### Ukuran Input: {size}\n\n")
             
-            # Tampilkan daftar harga
-            prices = [str(metrics['prices'][size][i]) for i in range(size)]
-            f.write(f"**Daftar Harga:**\n")
-            f.write(f"```\n[{', '.join(prices)}]\n```\n\n")
+        #     # Tampilkan daftar harga
+        #     prices = [str(metrics['prices'][size][i]) for i in range(size)]
+        #     f.write(f"**Daftar Harga:**\n")
+        #     f.write(f"```\n[{', '.join(prices)}]\n```\n\n")
             
-            # Analisis harga per unit
-            price_per_unit = [(i+1, float(metrics['prices'][size][i])/(i+1)) for i in range(size)]
-            max_price_per_unit = max(price_per_unit, key=lambda x: x[1])
+        #     # Analisis harga per unit
+        #     price_per_unit = [(i+1, float(metrics['prices'][size][i])/(i+1)) for i in range(size)]
+        #     max_price_per_unit = max(price_per_unit, key=lambda x: x[1])
             
-            f.write("**Analisis Harga per Unit:**\n")
-            f.write("```\n")
-            for length, ppu in price_per_unit:
-                if (length, ppu) == max_price_per_unit:
-                    f.write(f"  Panjang {length}: {ppu:.2f} per unit ⭐ (optimal per unit)\n")
-                else:
-                    f.write(f"  Panjang {length}: {ppu:.2f} per unit\n")
-            f.write("```\n\n")
+        #     f.write("**Analisis Harga per Unit:**\n")
+        #     f.write("```\n")
+        #     for length, ppu in price_per_unit:
+        #         if (length, ppu) == max_price_per_unit:
+        #             f.write(f"  Panjang {length}: {ppu:.2f} per unit ⭐ (optimal per unit)\n")
+        #         else:
+        #             f.write(f"  Panjang {length}: {ppu:.2f} per unit\n")
+        #     f.write("```\n\n")
         
         # Perbandingan Kinerja
         f.write("## Perbandingan Kinerja\n")
@@ -613,14 +841,36 @@ def save_analysis_to_file(metrics, test_sizes):
         f.write("\n")
         
         # Analisis Peningkatan Waktu
+        # f.write("### Analisis Peningkatan Waktu\n")
+        # for size1, size2 in zip(test_sizes[:-1], test_sizes[1:]):
+        #     f.write(f"\n#### Peningkatan dari ukuran {size1} ke {size2}:\n")
+        #     for impl in metrics['execution_time'][size1].keys():
+        #         time1 = metrics['execution_time'][size1][impl]
+        #         time2 = metrics['execution_time'][size2][impl]
+        #         increase = (time2 - time1) / time1 * 100
+        #         f.write(f"- {impl}: {increase:.2f}% \n")
         f.write("### Analisis Peningkatan Waktu\n")
-        for size1, size2 in zip(test_sizes[:-1], test_sizes[1:]):
-            f.write(f"\n#### Peningkatan dari ukuran {size1} ke {size2}:\n")
-            for impl in metrics['execution_time'][size1].keys():
-                time1 = metrics['execution_time'][size1][impl]
-                time2 = metrics['execution_time'][size2][impl]
-                increase = (time2 - time1) / time1 * 100
-                f.write(f"- {impl}: {increase:.2f}% \n")
+        
+        # Tentukan ukuran minimum, tengah, dan maksimum
+        min_size = min(test_sizes)
+        max_size = max(test_sizes)
+        mid_size = test_sizes[len(test_sizes) // 2]
+        
+        # Analisis min ke mid
+        f.write(f"\n#### Peningkatan dari ukuran {min_size} ke {mid_size}:\n")
+        for impl in metrics['execution_time'][min_size].keys():
+            time_min = metrics['execution_time'][min_size][impl]
+            time_mid = metrics['execution_time'][mid_size][impl]
+            increase = (time_mid - time_min) / time_min * 100
+            f.write(f"- {impl}: {increase:.2f}% \n")
+        
+        # Analisis mid ke max
+        f.write(f"\n#### Peningkatan dari ukuran {mid_size} ke {max_size}:\n")
+        for impl in metrics['execution_time'][mid_size].keys():
+            time_mid = metrics['execution_time'][mid_size][impl]
+            time_max = metrics['execution_time'][max_size][impl]
+            increase = (time_max - time_mid) / time_mid * 100
+            f.write(f"- {impl}: {increase:.2f}% \n")
         
         # Penggunaan Memori
         f.write("\n### Penggunaan Memori\n")
@@ -702,7 +952,9 @@ def save_analysis_to_file(metrics, test_sizes):
         
         # Analisis Trade-off
         f.write("\n## Analisis Trade-off\n\n")
-        
+        # Tambahkan gambar ke markdown
+        f.write("\n### Visualisasi Trade-off\n")
+        f.write("\n![Trade-off Analysis](trade_off_analysis.png)\n")
         f.write("### 1. Trade-off Waktu vs Memori\n")
         # Hitung rata-rata waktu dan memori untuk setiap implementasi
         avg_metrics = {}
@@ -733,14 +985,14 @@ def save_analysis_to_file(metrics, test_sizes):
         f.write("  - Banyak perhitungan redundan\n")
         f.write("- **Best Case:** Input kecil (n ≤ 10) untuk pembelajaran\n\n")
         
-        f.write("#### Iterative (Brute Force)\n")
-        f.write("- **Kelebihan:**\n")
-        f.write("  - Menghindari overhead rekursi\n")
-        f.write("  - Lebih efisien dalam penggunaan call stack\n")
-        f.write("- **Kekurangan:**\n")
-        f.write("  - Tetap memerlukan waktu eksponensial\n")
-        f.write("  - Penggunaan memori untuk menyimpan kombinasi\n")
-        f.write("- **Best Case:** Input kecil dengan batasan memori longgar\n\n")
+        # f.write("#### Iterative (Brute Force)\n")
+        # f.write("- **Kelebihan:**\n")
+        # f.write("  - Menghindari overhead rekursi\n")
+        # f.write("  - Lebih efisien dalam penggunaan call stack\n")
+        # f.write("- **Kekurangan:**\n")
+        # f.write("  - Tetap memerlukan waktu eksponensial\n")
+        # f.write("  - Penggunaan memori untuk menyimpan kombinasi\n")
+        # f.write("- **Best Case:** Input kecil dengan batasan memori longgar\n\n")
         
         f.write("#### Recursive with Memoization (Top-down DP)\n")
         f.write("- **Kelebihan:**\n")
@@ -751,17 +1003,18 @@ def save_analysis_to_file(metrics, test_sizes):
         f.write("  - Penggunaan memori untuk memoization\n")
         f.write("- **Best Case:** Input menengah dengan subproblem berulang\n\n")
         
-        f.write("#### Bottom-up DP\n")
-        f.write("- **Kelebihan:**\n")
-        f.write("  - Menghindari overhead rekursi\n")
-        f.write("  - Lebih efisien dalam penggunaan memori\n")
-        f.write("- **Kekurangan:**\n")
-        f.write("  - Menghitung semua subproblem\n")
-        f.write("  - Memerlukan array tambahan untuk tracking\n")
-        f.write("- **Best Case:** Input besar dengan memori mencukupi\n\n")
+        # f.write("#### Bottom-up DP\n")
+        # f.write("- **Kelebihan:**\n")
+        # f.write("  - Menghindari overhead rekursi\n")
+        # f.write("  - Lebih efisien dalam penggunaan memori\n")
+        # f.write("- **Kekurangan:**\n")
+        # f.write("  - Menghitung semua subproblem\n")
+        # f.write("  - Memerlukan array tambahan untuk tracking\n")
+        # f.write("- **Best Case:** Input besar dengan memori mencukupi\n\n")
         
         f.write("#### Space Optimized DP\n")
         f.write("- **Kelebihan:**\n")
+        f.write("  - Menghindari overhead rekursi\n")
         f.write("  - Penggunaan memori paling efisien\n")
         f.write("  - Kinerja waktu tetap kompetitif\n")
         f.write("- **Kekurangan:**\n")
@@ -785,8 +1038,8 @@ def save_analysis_to_file(metrics, test_sizes):
         f.write("### 4. Rekomendasi Penggunaan Berdasarkan Karakteristik Input\n\n")
         f.write("#### Berdasarkan Ukuran Input\n")
         f.write("- **Kecil (n ≤ 10):**\n")
-        f.write("  - Gunakan Pure Recursive untuk pembelajaran\n")
-        f.write("  - Atau Iterative untuk performa lebih baik\n\n")
+        f.write("  - Gunakan Pure Recursive untuk pembelajaran\n\n")
+        # f.write("  - Atau Iterative untuk performa lebih baik\n\n")
         f.write("- **Menengah (10 < n ≤ 20):**\n")
         f.write("  - Gunakan Top-down DP jika subproblem sedikit\n")
         f.write("  - Atau Bottom-up DP untuk konsistensi\n\n")
@@ -832,14 +1085,14 @@ def save_analysis_to_file(metrics, test_sizes):
         
         # Analisis Pola Pemotongan
         f.write("\n### 2. Analisis Pola Pemotongan\n")
-        f.write("![Analisis Pola Pemotongan](cut_pattern_analysis.png)\n\n")
         f.write("Hasil pola pemotongan untuk setiap ukuran input:\n")
-        for size in test_sizes:
-            f.write(f"\n**Ukuran {size}:**\n")
-            for impl in metrics['cut_patterns'][size].keys():
-                cuts = metrics['cut_patterns'][size][impl]
-                if cuts:
-                    f.write(f"- {impl}: {cuts} (Nilai: {metrics['solution_quality'][size][impl]})\n")
+        f.write("![Analisis Pola Pemotongan](cut_pattern_analysis.png)\n\n")
+        # for size in test_sizes:
+        #     f.write(f"\n**Ukuran {size}:**\n")
+        #     for impl in metrics['cut_patterns'][size].keys():
+        #         cuts = metrics['cut_patterns'][size][impl]
+        #         if cuts:
+        #             f.write(f"- {impl}: {cuts} (Nilai: {metrics['solution_quality'][size][impl]})\n")
         
         # Visualisasi Penggunaan Memori
         f.write("\n### 3. Visualisasi Penggunaan Memori\n")
@@ -892,17 +1145,18 @@ def save_analysis_to_file(metrics, test_sizes):
         f.write("### Rekomendasi Penggunaan\n")
         f.write("1. Untuk dataset kecil (n ≤ 10): Semua implementasi dapat digunakan\n")
         f.write("2. Untuk dataset menengah (10 < n ≤ 20): Gunakan implementasi DP\n")
-        f.write("3. Untuk dataset besar (n > 20): Gunakan Bottom-up DP atau Space Optimized DP\n")
+        f.write("3. Untuk dataset besar (n > 20): Gunakan Bottom-up Space Optimized DP\n")
         f.write("4. Jika memori terbatas: Gunakan Space Optimized DP\n")
-        f.write("5. Untuk tujuan pembelajaran/debugging: Gunakan Top-down DP\n\n")
+        f.write("5. Untuk tujuan pembelajaran/debugging: Gunakan Rekursif / Top-down DP\n\n")
     
     print(f"Analysis saved to {analysis_file}")
     return result_dir
 
 def main():
-    test_sizes = [10, 20, 30, 40, 50]
-    metrics = test_performance(test_sizes)
-    save_analysis_to_file(metrics, test_sizes)
+    pass
+    # test_sizes = [10, 20, 30, 40, 50]
+    # metrics = test_performance(test_sizes)
+    # save_analysis_to_file(metrics, test_sizes)
 
 if __name__ == "__main__":
     main()

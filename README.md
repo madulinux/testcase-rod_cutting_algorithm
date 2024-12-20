@@ -3,6 +3,115 @@
 ## Deskripsi Masalah
 Rod Cutting Problem adalah masalah optimasi klasik di mana kita memiliki sebuah batang (rod) dengan panjang n dan daftar harga untuk setiap panjang potongan. Tujuannya adalah untuk memotong batang tersebut sedemikian rupa sehingga menghasilkan nilai maksimum.
 
+## Implementasi
+
+Dalam proyek ini, kami menyediakan beberapa implementasi berbeda untuk menyelesaikan Rod Cutting Problem:
+
+### 1. Pure Recursive (Brute Force)
+- Menggunakan rekursi murni tanpa optimasi
+- Mencoba semua kemungkinan kombinasi potongan
+- Kompleksitas Waktu: O(2^n)
+- Kompleksitas Ruang: O(n) untuk call stack
+
+```python
+def rod_cutting_pure_recursive(prices, n):
+    if n <= 0:
+        return 0, []
+    
+    max_val = float('-inf')
+    best_cuts = []
+    
+    for i in range(1, n + 1):
+        val, cuts = rod_cutting_pure_recursive(prices, n - i)
+        current_value = prices[i-1] + val
+        if current_value > max_val:
+            max_val = current_value
+            best_cuts = [i] + cuts
+    
+    return (max_val if max_val != float('-inf') else 0), best_cuts
+```
+
+### 2. Recursive with Memoization (Top-down DP)
+- Menggunakan rekursi dengan memoization
+- Menyimpan hasil perhitungan untuk menghindari perhitungan ulang
+- Kompleksitas Waktu: O(n²)
+- Kompleksitas Ruang: O(n) untuk memo dan call stack
+
+```python
+def rod_cutting_recursive(prices, n, memo=None):
+    if memo is None:
+        memo = {}
+    if n <= 0:
+        return 0, []
+    
+    if n in memo:
+        return memo[n]
+    
+    max_val = float('-inf')
+    best_cuts = []
+    
+    for i in range(1, n + 1):
+        val, cuts = rod_cutting_recursive(prices, n - i, memo)
+        current_value = prices[i-1] + val
+        if current_value > max_val:
+            max_val = current_value
+            best_cuts = [i] + cuts
+    
+    result = ((max_val if max_val != float('-inf') else 0), best_cuts)
+    memo[n] = result
+    return result
+```
+
+### 3. Space-Optimized Bottom-up Dynamic Programming
+- Menggunakan tabulasi untuk membangun solusi dari bawah dengan optimasi memori
+- Hanya menyimpan nilai optimal dan satu potongan untuk setiap panjang
+- Kompleksitas Waktu: O(n²)
+- Kompleksitas Ruang: O(n)
+
+```python
+def rod_cutting_dp_space_optimized(prices, n):
+    if n <= 0:
+        return 0, []
+    
+    dp = [0] * (n + 1)
+    best_cuts = [0] * (n + 1)
+    
+    for i in range(1, n + 1):
+        for j in range(1, i + 1):
+            current_value = prices[j-1] + dp[i-j]
+            if current_value > dp[i]:
+                dp[i] = current_value
+                best_cuts[i] = j
+    
+    cuts = []
+    remaining = n
+    while remaining > 0:
+        cut = best_cuts[remaining]
+        cuts.append(cut)
+        remaining -= cut
+    
+    return dp[n], cuts
+```
+
+## Perbandingan Kompleksitas
+
+| Implementasi | Kompleksitas Waktu | Kompleksitas Ruang | Karakteristik |
+|--------------|-------------------|-------------------|---------------|
+| Pure Recursive | O(2^n) | O(n) | Sederhana tapi tidak efisien |
+| Recursive + Memo | O(n²) | O(n) | Efisien dengan overhead rekursi |
+| Space-Optimized DP | O(n²) | O(n) | Paling efisien dalam penggunaan memori |
+
+## Penggunaan
+
+Setiap implementasi menerima parameter yang sama:
+- `prices`: List harga untuk setiap panjang potongan (0-indexed)
+- `n`: Panjang batang yang akan dipotong
+- `allowed_lengths` (opsional): List panjang potongan yang diperbolehkan
+
+Dan mengembalikan tuple:
+- `nilai_maksimal`: Nilai maksimal yang bisa didapat
+- `daftar_potongan`: Urutan panjang potongan yang menghasilkan nilai maksimal
+
 ## Struktur Proyek
 ```
 rod_cutting/
@@ -77,12 +186,6 @@ Implementasi dalam proyek ini dapat dikategorikan menjadi tiga kelompok berdasar
 - Kompleksitas waktu: O(2^n)
 - Cocok untuk pembelajaran konsep dasar
 
-#### b. Iterative dengan Brute Force
-- Mencoba semua kombinasi pemotongan yang mungkin
-- Tidak menggunakan memoization atau tabulasi
-- Kompleksitas waktu: O(n * 2^n)
-- Menunjukkan pendekatan iteratif murni
-
 ### 2. Implementasi dengan Dynamic Programming
 
 #### a. Recursive dengan Memoization (Top-down DP)
@@ -92,20 +195,15 @@ Implementasi dalam proyek ini dapat dikategorikan menjadi tiga kelompok berdasar
 - Kompleksitas waktu: O(n²)
 - Trade-off antara waktu dan memori
 
-#### b. Bottom-up DP
-- Menggunakan DP dengan pendekatan bottom-up
-- Membangun solusi dari subproblem terkecil
-- Menyimpan hasil dalam array
-- Kompleksitas waktu: O(n²)
-- Lebih efisien dalam penggunaan memori dibanding top-down
-
 ### 3. Implementasi dengan Optimasi
 
 #### Space Optimized DP
-- Berbasis Bottom-up DP
+- Menggunakan DP dengan pendekatan bottom-up
+- Membangun solusi dari subproblem terkecil
 - Mengoptimalkan penggunaan memori
 - Hanya menggunakan satu array untuk menyimpan hasil
 - Kompleksitas waktu tetap O(n²)
+- Lebih efisien dalam penggunaan memori dibanding top-down
 - Overhead memori minimal
 
 ### Perbedaan Utama
@@ -119,108 +217,6 @@ Implementasi dalam proyek ini dapat dikategorikan menjadi tiga kelompok berdasar
    - Optimasi fokus pada efisiensi penggunaan memori
    - Menyederhanakan struktur data yang digunakan
    - Mempertahankan efisiensi waktu eksekusi
-
-## Implementasi
-
-Proyek ini membandingkan lima implementasi berbeda dari Rod Cutting Problem:
-
-### 1. Pure Recursive (Brute Force)
-- Menggunakan rekursi murni tanpa optimasi
-- Menghitung ulang subproblem yang sama berkali-kali
-- Kompleksitas Waktu: O(2^n)
-- Kompleksitas Ruang: O(n) untuk call stack
-
-```python
-def rod_cutting_pure_recursive(prices, n):
-    if n <= 0:
-        return 0
-    max_val = float('-inf')
-    for i in range(1, n + 1):
-        max_val = max(max_val, prices[i-1] + rod_cutting_pure_recursive(prices, n - i))
-    return max_val
-```
-
-### 2. Iterative (Brute Force)
-- Menggunakan iterasi untuk mencoba semua kombinasi pemotongan
-- Tidak menyimpan hasil perhitungan sebelumnya
-- Kompleksitas Waktu: O(n * 2^n)
-- Kompleksitas Ruang: O(2^n) untuk menyimpan kombinasi
-
-```python
-def rod_cutting_iterative(prices, n):
-    if n <= 0:
-        return 0
-    
-    def get_combinations(length, current_cuts=[]):
-        if length == 0:
-            return [current_cuts]
-        combinations = []
-        for i in range(1, length + 1):
-            combinations.extend(get_combinations(length - i, current_cuts + [i]))
-        return combinations
-    
-    all_combinations = get_combinations(n)
-    max_value = float('-inf')
-    for cuts in all_combinations:
-        current_value = sum(prices[i-1] for i in cuts)
-        max_value = max(max_value, current_value)
-    return max_value
-```
-
-### 3. Recursive with Memoization (Top-down DP)
-- Menggunakan rekursi dengan memoization
-- Menyimpan hasil perhitungan untuk menghindari perhitungan ulang
-- Kompleksitas Waktu: O(n²)
-- Kompleksitas Ruang: O(n) untuk memo dan call stack
-
-```python
-def rod_cutting_recursive(prices, n, memo=None):
-    if memo is None:
-        memo = {}
-    if n <= 0:
-        return 0
-    if n in memo:
-        return memo[n]
-    max_val = float('-inf')
-    for i in range(1, n + 1):
-        max_val = max(max_val, prices[i-1] + rod_cutting_recursive(prices, n - i, memo))
-    memo[n] = max_val
-    return max_val
-```
-
-### 4. Bottom-up DP
-- Menggunakan tabulasi untuk membangun solusi dari bawah
-- Menghindari overhead rekursi
-- Kompleksitas Waktu: O(n²)
-- Kompleksitas Ruang: O(n)
-
-```python
-def rod_cutting_dp(prices, n):
-    dp = [0 for _ in range(n + 1)]
-    for i in range(1, n + 1):
-        max_val = float('-inf')
-        for j in range(1, i + 1):
-            max_val = max(max_val, prices[j-1] + dp[i-j])
-        dp[i] = max_val
-    return dp[n]
-```
-
-### 5. Space Optimized DP
-- Optimasi dari Bottom-up DP
-- Menggunakan struktur data minimal
-- Kompleksitas Waktu: O(n²)
-- Kompleksitas Ruang: O(n)
-
-```python
-def rod_cutting_dp_space_optimized(prices, n):
-    dp = [0 for _ in range(n + 1)]
-    for i in range(1, n + 1):
-        max_val = float('-inf')
-        for j in range(1, i + 1):
-            max_val = max(max_val, prices[j-1] + dp[i-j])
-        dp[i] = max_val
-    return dp[n]
-```
 
 ## Analisis Performa
 
@@ -247,14 +243,13 @@ Setiap file analisis di folder `results/` mencakup:
 ## Kesimpulan dan Rekomendasi
 
 ### Waktu Eksekusi
-1. Pendekatan brute force (Pure Recursive dan Iterative) menunjukkan pertumbuhan waktu eksponensial
+1. Pendekatan brute force (Pure Recursive) menunjukkan pertumbuhan waktu eksponensial
 2. Dynamic Programming memberikan peningkatan kinerja yang signifikan
-3. Space Optimized DP memiliki kinerja serupa dengan Bottom-up DP
+3. Space Optimized DP memiliki kinerja yang jauh lebih baik
 
 ### Penggunaan Memori
 1. Pure Recursive menggunakan memori untuk call stack
-2. Iterative menggunakan memori untuk menyimpan kombinasi
-3. Pendekatan DP menggunakan memori tambahan untuk menyimpan hasil
+2. Pendekatan DP menggunakan memori tambahan untuk menyimpan hasil
 4. Space Optimized DP menunjukkan penggunaan memori yang paling efisien
 
 ### Rekomendasi Penggunaan

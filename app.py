@@ -66,12 +66,9 @@ def main():
     
     if choice == "1":
         # Test sizes dengan justifikasi:
-        # <= 5  : Kasus kecil untuk verifikasi kebenaran
-        # <= 8  : Menunjukkan perbedaan awal kinerja
-        # <= 12 : Kasus menengah, perbedaan signifikan untuk brute force
-        # <= 15 : Kasus besar, menunjukkan perbedaan yang jelas
-        # >= 18 : Kasus ekstrem, memperlihatkan batas praktis implementasi
-        test_sizes = [5, 7, 11, 13, 14, 17]
+        # Rentang panjang kecil ( n≤10).
+        # Rentang panjang besar ( n>10).
+        test_sizes = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 20]
         
         # Jalankan pengujian dengan generate_test_case
         metrics = test_performance(test_sizes)
