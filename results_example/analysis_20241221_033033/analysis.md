@@ -815,25 +815,7 @@
   - Tracking solusi lebih sulit
 - **Best Case:** Input besar dengan batasan memori ketat
 
-### 3. Perbedaan Urutan Pemotongan
-
-Beberapa implementasi menghasilkan urutan pemotongan yang berbeda (misalnya [2, 3] vs [3, 2]) karena:
-
-1. **Arah Pencarian:**
-   - Top-down: Memecah masalah dari atas ke bawah
-   - Bottom-up: Membangun solusi dari bawah ke atas
-
-2. **Prioritas Pemilihan:**
-   - Beberapa implementasi mengutamakan potongan kecil dulu
-   - Yang lain mengutamakan potongan besar dulu
-
-3. **Urutan Iterasi:**
-   - Iterative: Mencoba kombinasi secara sekuensial
-   - DP: Mengoptimalkan berdasarkan subproblem
-
-Semua urutan valid selama menghasilkan nilai optimal yang sama.
-
-### 4. Rekomendasi Penggunaan Berdasarkan Karakteristik Input
+### 3. Rekomendasi Penggunaan Berdasarkan Karakteristik Input
 
 #### Berdasarkan Ukuran Input
 - **Kecil (n ≤ 10):**
