@@ -2,31 +2,6 @@
 
 ### Tanggal Pengujian: 2024-12-21 03:30:33
 
-## Kategorisasi Implementasi
-
-### 1. Implementasi Tanpa Dynamic Programming (Brute Force)
-
-#### Pure Recursive
-- Menggunakan rekursi murni tanpa optimasi
-- Menghitung ulang subproblem yang sama berkali-kali
-- Kompleksitas Waktu: O(2^n)
-- Kompleksitas Ruang: O(n) untuk call stack
-
-### 2. Implementasi dengan Dynamic Programming
-
-#### Recursive dengan Memoization (Top-down DP)
-- Menggunakan DP dengan pendekatan top-down
-- Menyimpan hasil perhitungan dalam dictionary
-- Kompleksitas Waktu: O(n²)
-- Trade-off antara waktu dan memori
-
-#### Space Optimized DP
-- Menggunakan DP dengan pendekatan bottom-up
-- Membangun solusi dari subproblem terkecil
-- Mengoptimalkan penggunaan memori
-- Kompleksitas Waktu: O(n²)
-- Overhead memori minimal
-
 ## Hasil Pengujian Detail
 
 ### Daftar Panjang:
@@ -785,67 +760,6 @@
 - Waktu Maksimum: 0.000332s
 - Memori Maksimum: 1.20 KB
 
-### 2. Karakteristik Implementasi
-
-#### Pure Recursive (Brute Force)
-- **Kelebihan:**
-  - Implementasi sederhana dan mudah dipahami
-  - Cocok untuk debugging karena alur eksekusi jelas
-- **Kekurangan:**
-  - Waktu eksekusi meningkat eksponensial
-  - Banyak perhitungan redundan
-- **Best Case:** Input kecil (n ≤ 10) untuk pembelajaran
-
-#### Recursive with Memoization (Top-down DP)
-- **Kelebihan:**
-  - Hanya menghitung subproblem yang diperlukan
-  - Mudah diimplementasi dari versi rekursif
-- **Kekurangan:**
-  - Overhead dari rekursi masih ada
-  - Penggunaan memori untuk memoization
-- **Best Case:** Input menengah dengan subproblem berulang
-
-#### Space Optimized DP
-- **Kelebihan:**
-  - Menghindari overhead rekursi
-  - Penggunaan memori paling efisien
-  - Kinerja waktu tetap kompetitif
-- **Kekurangan:**
-  - Implementasi lebih kompleks
-  - Tracking solusi lebih sulit
-- **Best Case:** Input besar dengan batasan memori ketat
-
-### 3. Rekomendasi Penggunaan Berdasarkan Karakteristik Input
-
-#### Berdasarkan Ukuran Input
-- **Kecil (n ≤ 10):**
-  - Gunakan Pure Recursive untuk pembelajaran
-
-- **Menengah (10 < n ≤ 20):**
-  - Gunakan Top-down DP jika subproblem sedikit
-  - Atau Bottom-up DP untuk konsistensi
-
-- **Besar (n > 20):**
-  - Gunakan Bottom-up DP untuk kinerja optimal
-  - Atau Space Optimized DP jika memori terbatas
-
-#### Berdasarkan Batasan Panjang Potong
-- **Sedikit Pilihan:**
-  - Top-down DP lebih efisien karena subproblem lebih sedikit
-
-- **Banyak Pilihan:**
-  - Bottom-up DP atau Space Optimized DP untuk konsistensi
-
-#### Berdasarkan Kebutuhan Debugging
-- **Fase Development:**
-  - Gunakan Pure Recursive atau Top-down DP
-  - Lebih mudah di-debug dan dipahami
-
-- **Fase Production:**
-  - Gunakan Bottom-up DP atau Space Optimized DP
-  - Performa dan efisiensi lebih penting
-
-
 ## Visualisasi
 ### 1. Perbandingan Waktu Eksekusi
 ![Perbandingan Waktu Eksekusi](execution_time_comparison.png)
@@ -894,11 +808,3 @@ Perbandingan relatif penggunaan memori:
 1. **Performa Terbaik:** Space Optimized DP
 2. **Performa Menengah:** Recursive with Memoization (Top-down DP)
 3. **Performa Terendah:** Pure Recursive (Brute Force)
-
-### Rekomendasi Penggunaan
-1. Untuk dataset kecil (n ≤ 10): Semua implementasi dapat digunakan
-2. Untuk dataset menengah (10 < n ≤ 20): Gunakan implementasi DP
-3. Untuk dataset besar (n > 20): Gunakan Bottom-up Space Optimized DP
-4. Jika memori terbatas: Gunakan Space Optimized DP
-5. Untuk tujuan pembelajaran/debugging: Gunakan Rekursif / Top-down DP
-
